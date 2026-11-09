@@ -117,7 +117,7 @@
   modal.addEventListener("click", event => { if (event.target === modal) closeDetails(); });
   document.addEventListener("keydown", event => {
     if (event.key === "Escape" && !modal.hidden) closeDetails();
-    if (event.key === "/" && !modal.hidden === false && !["INPUT", "TEXTAREA"].includes(document.activeElement.tagName)) {
+    if (event.key === "/" && modal.hidden && !["INPUT", "TEXTAREA"].includes(document.activeElement.tagName)) {
       event.preventDefault();
       search.focus();
     }
