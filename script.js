@@ -190,13 +190,13 @@
   async function loadSharedGames() {
     const ready = typeof window.supabase !== "undefined" &&
       /^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(config.supabaseUrl || "") &&
-      typeof config.supabaseAnonKey === "string" && config.supabaseAnonKey.length > 20;
+      typeof config.supabasePublishableKey === "string" && config.supabasePublishableKey.length > 20;
     if (!ready) return;
     try {
-      const client = window.supabase.createClient(config.supabaseUrl,config.supabaseAnonKey);
+      const client = window.supabase.createClient(config.supabaseUrl,config.supabasePublishableKey);
       const {data,error} = await client.from("games").select("id,title,category,description,official_url,art_theme,display_order").eq("is_published",true).order("display_order",{ascending:true});
       if (error) throw error;
-      if (!Array.isArray(data) || !data.length) return;
+      if (!Array.isArray(data)) return;
       const newCards = data.map(createGameCard);
       grid.replaceChildren(...newCards);
       cards = newCards;
