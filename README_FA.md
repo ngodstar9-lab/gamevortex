@@ -26,7 +26,7 @@
 3. در Authentication > Users یک کاربر مدیر بساز.
 4. UUID همان کاربر را کپی کن و در SQL Editor این دستور را با UUID واقعی اجرا کن:
    `insert into public.admin_users (user_id) values ('UUID-اینجا');`
-5. از بخش Project Settings > API، Project URL و کلید عمومی `anon` یا `publishable` را بردار.
+5. از بخش Project Settings > API، Project URL و کلید عمومی `Publishable key` را بردار.
 6. این دو مقدار را در فایل `supabase-config.js` وارد کن و در GitHub ذخیره کن. فقط کلید عمومی مجاز است؛ **هرگز service_role را در سایت قرار نده.**
 7. پس از انتشار مجدد GitHub Pages، وارد `admin.html` شو و با ایمیل و رمز مدیر وارد شو.
 
