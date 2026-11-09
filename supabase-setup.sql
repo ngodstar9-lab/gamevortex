@@ -21,6 +21,8 @@ create table if not exists public.games (
   created_at timestamptz not null default now()
 );
 
+create unique index if not exists games_title_unique_lower on public.games (lower(title));
+
 alter table public.admin_users enable row level security;
 alter table public.games enable row level security;
 
