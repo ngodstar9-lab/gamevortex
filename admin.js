@@ -35,8 +35,8 @@
   function configReady() {
     return typeof window.supabase !== "undefined" &&
       /^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(config.supabaseUrl || "") &&
-      typeof config.supabaseAnonKey === "string" &&
-      config.supabaseAnonKey.length > 20;
+      typeof config.supabasePublishableKey === "string" &&
+      config.supabasePublishableKey.length > 20;
   }
   function textCell(text) {
     const cell = document.createElement("td");
@@ -138,7 +138,7 @@
     loginPanel.hidden = true;
     return;
   }
-  supabase = window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey, {
+  supabase = window.supabase.createClient(config.supabaseUrl, config.supabasePublishableKey, {
     auth: {persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}
   });
 
