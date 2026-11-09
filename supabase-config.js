@@ -3,5 +3,5 @@
 // هرگز کلید service_role را در فایل‌های سایت قرار نده.
 window.GAMEVORTEX_CONFIG = {
   supabaseUrl: "",
-  supabaseAnonKey: ""
+  supabasePublishableKey: ""
 };
