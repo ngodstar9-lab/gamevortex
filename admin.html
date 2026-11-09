@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#08090d"><title>مدیریت GameVortex</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css"><link rel="stylesheet" href="admin.css">
+</head>
+<body class="admin-body">
+  <header class="topbar admin-topbar">
+    <a class="brand" href="index.html"><span class="brand-mark">G</span><span class="brand-name">GAME<span>VORTEX</span></span></a>
+    <div class="admin-header-side"><span class="admin-indicator"><i></i> ADMIN AREA</span><a class="header-link" href="index.html">بازگشت به سایت ↗</a></div>
+  </header>
+  <main class="admin-wrap">
+    <section class="admin-intro"><div class="eyebrow"><span class="pulse-dot"></span> GAMEVORTEX CONTROL CENTER</div><h1>پنل <em>مدیریت</em></h1><p>مدیریت کتابخانه بازی‌های GameVortex؛ تغییرات ذخیره‌شده در سایت برای همه بازدیدکنندگان نمایش داده می‌شود.</p></section>
+
+    <section class="setup-notice" id="setupNotice" hidden>
+      <div class="notice-icon">⚙</div><div><h2>اتصال پایگاه داده هنوز تنظیم نشده</h2><p>برای فعال‌شدن پنل، یک پروژه Supabase جداگانه برای GameVortex بساز. سپس آدرس پروژه و کلید عمومی آن را در فایل <code>supabase-config.js</code> قرار بده و فایل را در GitHub ذخیره کن.</p><a href="https://supabase.com/dashboard" target="_blank" rel="noopener noreferrer">ورود به Supabase ↗</a><small>فقط کلید عمومی anon یا publishable را وارد کن؛ کلید service_role محرمانه است و نباید در سایت قرار بگیرد.</small></div>
+    </section>
+
+    <section class="login-panel" id="loginPanel">
+      <div class="panel-kicker">SECURE ACCESS / 01</div><div class="login-icon">G</div><h2>ورود مدیر</h2><p>با ایمیل و رمز عبور مدیر GameVortex وارد شو.</p>
+      <form id="loginForm"><label>ایمیل مدیر<input type="email" id="loginEmail" autocomplete="username" required placeholder="admin@example.com"></label><label>رمز عبور<input type="password" id="loginPassword" autocomplete="current-password" required placeholder="رمز عبور حساب Supabase"></label><button class="admin-button primary" type="submit" id="loginButton">ورود به پنل <span>←</span></button><div class="form-message" id="loginMessage" role="status"></div></form>
+      <div class="login-foot">GAMEVORTEX · PRIVATE ADMIN ACCESS</div>
+    </section>
+
+    <section class="dashboard" id="dashboard" hidden>
+      <div class="dashboard-top"><div><div class="panel-kicker">OVERVIEW / 02</div><h2>مدیریت کتابخانه</h2><p id="signedInAs"></p></div><button class="admin-button ghost" id="logoutButton">خروج از حساب</button></div>
+      <div class="stats-row"><div class="stat-tile"><span>کل بازی‌ها</span><strong id="totalGames">۰</strong></div><div class="stat-tile"><span>منتشرشده</span><strong id="publishedGames">۰</strong></div><div class="stat-tile"><span>پیش‌نویس</span><strong id="draftGames">۰</strong></div></div>
+      <div class="editor-layout">
+        <section class="editor-card"><div class="editor-heading"><div><div class="panel-kicker">GAME EDITOR / 03</div><h3 id="editorTitle">افزودن بازی جدید</h3></div><button class="text-reset" id="clearFormButton" type="button">پاک کردن فرم</button></div>
+          <form id="gameForm">
+            <input type="hidden" id="gameId">
+            <label>نام بازی<input id="gameTitle" maxlength="90" required placeholder="مثلاً Portal 2"></label>
+            <div class="form-grid"><label>دسته‌بندی<select id="gameCategory" required><option value="action">اکشن</option><option value="strategy">استراتژی</option><option value="puzzle">فکری</option><option value="sport">ورزشی</option><option value="creative">خلاقانه و آرامش‌بخش</option></select></label><label>طرح کارت<select id="gameTheme"><option value="cs">قرمز / CS</option><option value="portal">آبی / Portal</option><option value="civ">طلایی / Civilization</option><option value="rocket">آبی / Rocket</option><option value="minecraft">سبز / Minecraft</option><option value="human">خاکی / Human</option><option value="track">مسابقه‌ای / Track</option><option value="stardew">طبیعت / Stardew</option></select></label></div>
+            <label>توضیحات<textarea id="gameDescription" rows="4" maxlength="700" required placeholder="توضیح کوتاه درباره بازی..."></textarea></label>
+            <label>لینک رسمی یا اطلاعات بیشتر<input id="gameUrl" type="url" placeholder="https://example.com"></label>
+            <div class="form-grid"><label>ترتیب نمایش<input id="gameOrder" type="number" min="0" step="1" value="0"></label><label class="check-label"><input id="gamePublished" type="checkbox" checked> نمایش در سایت عمومی</label></div>
+            <button class="admin-button primary" type="submit" id="saveGameButton">ذخیره بازی <span>←</span></button><div class="form-message" id="gameMessage" role="status"></div>
+          </form>
+        </section>
+        <section class="games-manager"><div class="games-manager-head"><div><div class="panel-kicker">YOUR LIBRARY / 04</div><h3>بازی‌های ثبت‌شده</h3></div><button class="admin-button ghost small" id="reloadGamesButton">↻ تازه‌سازی</button></div><div class="table-wrap"><table><thead><tr><th>نام بازی</th><th>دسته</th><th>وضعیت</th><th>عملیات</th></tr></thead><tbody id="gamesTableBody"><tr><td colspan="4">در حال دریافت اطلاعات...</td></tr></tbody></table></div><p class="table-note">حذف بازی برگشت‌پذیر نیست. برای مخفی‌کردن موقت، تیک «نمایش در سایت عمومی» را بردار.</p></section>
+      </div>
+    </section>
+  </main>
+  <footer class="admin-footer"><span>GAMEVORTEX CONTROL CENTER</span><span>دسترسی فقط برای مدیران مجاز</span></footer>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="supabase-config.js"></script><script src="admin.js"></script>
+</body></html>
