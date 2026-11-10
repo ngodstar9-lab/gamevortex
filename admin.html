@@ -2,7 +2,8 @@
 <html lang="fa" dir="rtl">
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="theme-color" content="#08090d"><title>مدیریت GameVortex</title>
+  <meta name="theme-color" content="#08090d"><meta name="description" content="پنل مدیریت مستقل GameVortex">
+  <title>مدیریت GameVortex</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css"><link rel="stylesheet" href="admin.css">
@@ -10,38 +11,81 @@
 <body class="admin-body">
   <header class="topbar admin-topbar">
     <a class="brand" href="index.html"><span class="brand-mark">G</span><span class="brand-name">GAME<span>VORTEX</span></span></a>
-    <div class="admin-header-side"><span class="admin-indicator"><i></i> ADMIN AREA</span><a class="header-link" href="index.html">بازگشت به سایت ↗</a></div>
+    <div class="admin-header-side"><span class="admin-indicator"><i></i> ADMIN AREA</span><a class="header-link" href="index.html">مشاهده سایت ↗</a></div>
   </header>
   <main class="admin-wrap">
-    <section class="admin-intro"><div class="eyebrow"><span class="pulse-dot"></span> GAMEVORTEX CONTROL CENTER</div><h1>پنل <em>مدیریت</em></h1><p>مدیریت کتابخانه بازی‌های GameVortex؛ تغییرات ذخیره‌شده در سایت برای همه بازدیدکنندگان نمایش داده می‌شود.</p></section>
+    <section class="admin-intro"><div class="eyebrow"><span class="pulse-dot"></span> GAMEVORTEX CONTROL CENTER</div><h1>مرکز <em>مدیریت</em></h1><p>کتابخانه، صفحه اصلی و پیام‌های GameVortex را از یک جا مدیریت کن.</p></section>
 
     <section class="setup-notice" id="setupNotice" hidden>
-      <div class="notice-icon">⚙</div><div><h2>اتصال پایگاه داده هنوز تنظیم نشده</h2><p>برای فعال‌شدن پنل، یک پروژه Supabase جداگانه برای GameVortex بساز. سپس آدرس پروژه و کلید عمومی آن را در فایل <code>supabase-config.js</code> قرار بده و فایل را در GitHub ذخیره کن.</p><a href="https://supabase.com/dashboard" target="_blank" rel="noopener noreferrer">ورود به Supabase ↗</a><small>فقط کلید عمومی anon یا publishable را وارد کن؛ کلید service_role محرمانه است و نباید در سایت قرار بگیرد.</small></div>
+      <div class="notice-icon">⚙</div><div><h2>اتصال پایگاه داده کامل نیست</h2><p>فایل <code>supabase-config.js</code> باید آدرس پروژه و کلید عمومی Publishable را داشته باشد. فقط کلید عمومی مجاز است؛ کلید Secret یا service_role را در سایت نگذار.</p><a href="https://supabase.com/dashboard/project/sjsrffubzuobthnuxnco/settings/api-keys" target="_blank" rel="noopener noreferrer">تنظیمات API پروژه ↗</a></div>
     </section>
 
     <section class="login-panel" id="loginPanel">
-      <div class="panel-kicker">SECURE ACCESS / 01</div><div class="login-icon">G</div><h2>ورود مدیر</h2><p>با ایمیل و رمز عبور مدیر GameVortex وارد شو.</p>
-      <form id="loginForm"><label>ایمیل مدیر<input type="email" id="loginEmail" autocomplete="username" required placeholder="admin@example.com"></label><label>رمز عبور<input type="password" id="loginPassword" autocomplete="current-password" required placeholder="رمز عبور حساب Supabase"></label><button class="admin-button primary" type="submit" id="loginButton">ورود به پنل <span>←</span></button><div class="form-message" id="loginMessage" role="status"></div></form>
+      <div class="panel-kicker">SECURE ACCESS / 01</div><div class="login-icon">G</div><h2>ورود مدیر</h2><p>با ایمیل و رمز عبور حساب مدیر GameVortex وارد شو.</p>
+      <form id="loginForm">
+        <label>ایمیل<input type="email" id="loginEmail" autocomplete="username" required placeholder="ایمیل حساب Supabase"></label>
+        <label>رمز عبور<input type="password" id="loginPassword" autocomplete="current-password" required placeholder="رمز عبور حساب مدیر"></label>
+        <button class="admin-button primary" type="submit" id="loginButton">ورود به پنل <span>←</span></button>
+        <div class="form-message" id="loginMessage" role="status"></div>
+      </form>
       <div class="login-foot">GAMEVORTEX · PRIVATE ADMIN ACCESS</div>
     </section>
 
     <section class="dashboard" id="dashboard" hidden>
-      <div class="dashboard-top"><div><div class="panel-kicker">OVERVIEW / 02</div><h2>مدیریت کتابخانه</h2><p id="signedInAs"></p></div><button class="admin-button ghost" id="logoutButton">خروج از حساب</button></div>
-      <div class="stats-row"><div class="stat-tile"><span>کل بازی‌ها</span><strong id="totalGames">۰</strong></div><div class="stat-tile"><span>منتشرشده</span><strong id="publishedGames">۰</strong></div><div class="stat-tile"><span>پیش‌نویس</span><strong id="draftGames">۰</strong></div></div>
+      <div class="dashboard-top">
+        <div><div class="panel-kicker">OVERVIEW / 02</div><h2>سلام، مدیر GameVortex</h2><p id="signedInAs"></p></div>
+        <div class="dashboard-actions"><a class="admin-button ghost" href="index.html" target="_blank" rel="noopener">پیش‌نمایش سایت ↗</a><button class="admin-button ghost" id="logoutButton">خروج از حساب</button></div>
+      </div>
+      <div class="connection-strip"><span><i></i> اتصال پایگاه داده برقرار است</span><span id="lastUpdated">آخرین به‌روزرسانی: ـ</span></div>
+      <div class="stats-row">
+        <div class="stat-tile"><span>کل بازی‌ها</span><strong id="totalGames">۰</strong><small>ثبت‌شده در کتابخانه</small></div>
+        <div class="stat-tile"><span>منتشرشده</span><strong id="publishedGames">۰</strong><small>قابل مشاهده برای همه</small></div>
+        <div class="stat-tile"><span>پیش‌نویس</span><strong id="draftGames">۰</strong><small>فقط در پنل مدیریت</small></div>
+        <div class="stat-tile"><span>بازی ویژه</span><strong id="featuredGames">۰</strong><small>نمایش در بخش ویژه سایت</small></div>
+      </div>
+
       <div class="editor-layout">
-        <section class="editor-card"><div class="editor-heading"><div><div class="panel-kicker">GAME EDITOR / 03</div><h3 id="editorTitle">افزودن بازی جدید</h3></div><button class="text-reset" id="clearFormButton" type="button">پاک کردن فرم</button></div>
+        <section class="editor-card">
+          <div class="editor-heading"><div><div class="panel-kicker">GAME EDITOR / 03</div><h3 id="editorTitle">افزودن بازی جدید</h3></div><button class="text-reset" id="clearFormButton" type="button">پاک کردن فرم</button></div>
           <form id="gameForm">
             <input type="hidden" id="gameId">
             <label>نام بازی<input id="gameTitle" maxlength="90" required placeholder="مثلاً Portal 2"></label>
-            <div class="form-grid"><label>دسته‌بندی<select id="gameCategory" required><option value="action">اکشن</option><option value="strategy">استراتژی</option><option value="puzzle">فکری</option><option value="sport">ورزشی</option><option value="creative">خلاقانه و آرامش‌بخش</option></select></label><label>طرح کارت<select id="gameTheme"><option value="cs">قرمز / CS</option><option value="portal">آبی / Portal</option><option value="civ">طلایی / Civilization</option><option value="rocket">آبی / Rocket</option><option value="minecraft">سبز / Minecraft</option><option value="human">خاکی / Human</option><option value="track">مسابقه‌ای / Track</option><option value="stardew">طبیعت / Stardew</option></select></label></div>
-            <label>توضیحات<textarea id="gameDescription" rows="4" maxlength="700" required placeholder="توضیح کوتاه درباره بازی..."></textarea></label>
-            <label>لینک رسمی یا اطلاعات بیشتر<input id="gameUrl" type="url" placeholder="https://example.com"></label>
-            <div class="form-grid"><label>ترتیب نمایش<input id="gameOrder" type="number" min="0" step="1" value="0"></label><label class="check-label"><input id="gamePublished" type="checkbox" checked> نمایش در سایت عمومی</label></div>
-            <button class="admin-button primary" type="submit" id="saveGameButton">ذخیره بازی <span>←</span></button><div class="form-message" id="gameMessage" role="status"></div>
+            <div class="form-grid">
+              <label>دسته‌بندی<select id="gameCategory" required><option value="action">اکشن</option><option value="strategy">استراتژی</option><option value="puzzle">فکری</option><option value="sport">ورزشی</option><option value="creative">خلاقانه و آرامش‌بخش</option></select></label>
+              <label>طرح کارت<select id="gameTheme"><option value="cs">قرمز / CS</option><option value="portal">آبی / Portal</option><option value="civ">طلایی / Civilization</option><option value="rocket">آبی / Rocket</option><option value="minecraft">سبز / Minecraft</option><option value="human">خاکی / Human</option><option value="track">مسابقه‌ای / Track</option><option value="stardew">طبیعت / Stardew</option></select></label>
+            </div>
+            <label>توضیحات<textarea id="gameDescription" rows="4" maxlength="700" required placeholder="توضیح کوتاه و مفید درباره بازی..."></textarea></label>
+            <label>لینک رسمی بازی<input id="gameUrl" type="url" placeholder="https://example.com"></label>
+            <label>آدرس تصویر جلد (اختیاری)<input id="gameCover" type="url" placeholder="https://example.com/cover.jpg"></label>
+            <label>پلتفرم‌ها (با ویرگول جدا کن)<input id="gamePlatforms" maxlength="120" placeholder="PC, PlayStation, Xbox"></label>
+            <div class="form-grid">
+              <label>ترتیب نمایش<input id="gameOrder" type="number" min="0" step="1" value="0"></label>
+              <label class="check-label"><input id="gamePublished" type="checkbox" checked> نمایش در سایت عمومی</label>
+            </div>
+            <label class="check-label featured-check"><input id="gameFeatured" type="checkbox"> انتخاب به‌عنوان بازی ویژه صفحه اصلی</label>
+            <div class="editor-buttons"><button class="admin-button primary" type="submit" id="saveGameButton">ذخیره بازی <span>←</span></button><button class="admin-button ghost" type="button" id="duplicateGameButton">کپی از این بازی</button></div>
+            <div class="form-message" id="gameMessage" role="status"></div>
           </form>
         </section>
-        <section class="games-manager"><div class="games-manager-head"><div><div class="panel-kicker">YOUR LIBRARY / 04</div><h3>بازی‌های ثبت‌شده</h3></div><button class="admin-button ghost small" id="reloadGamesButton">↻ تازه‌سازی</button></div><div class="table-wrap"><table><thead><tr><th>نام بازی</th><th>دسته</th><th>وضعیت</th><th>عملیات</th></tr></thead><tbody id="gamesTableBody"><tr><td colspan="4">در حال دریافت اطلاعات...</td></tr></tbody></table></div><p class="table-note">حذف بازی برگشت‌پذیر نیست. برای مخفی‌کردن موقت، تیک «نمایش در سایت عمومی» را بردار.</p></section>
+
+        <section class="games-manager">
+          <div class="games-manager-head"><div><div class="panel-kicker">YOUR LIBRARY / 04</div><h3>مدیریت بازی‌ها</h3></div><button class="admin-button ghost small" id="reloadGamesButton">↻ تازه‌سازی</button></div>
+          <div class="manager-tools"><input type="search" id="gamesSearch" placeholder="جست‌وجوی نام بازی..."><select id="statusFilter" aria-label="فیلتر وضعیت"><option value="all">همه وضعیت‌ها</option><option value="published">منتشرشده</option><option value="draft">پیش‌نویس</option><option value="featured">ویژه</option></select><select id="categoryFilter" aria-label="فیلتر دسته"><option value="all">همه دسته‌ها</option><option value="action">اکشن</option><option value="strategy">استراتژی</option><option value="puzzle">فکری</option><option value="sport">ورزشی</option><option value="creative">خلاقانه</option></select></div>
+          <div class="export-row"><button class="admin-button ghost small" id="exportCsvButton">خروجی CSV ↓</button><button class="admin-button ghost small" id="exportJsonButton">پشتیبان JSON ↓</button><span id="visibleCount"></span></div>
+          <div class="table-wrap"><table><thead><tr><th>نام بازی</th><th>دسته</th><th>وضعیت</th><th>ویژه</th><th>عملیات</th></tr></thead><tbody id="gamesTableBody"><tr><td colspan="5">در حال دریافت اطلاعات...</td></tr></tbody></table></div>
+          <p class="table-note">برای نمایش یا مخفی‌کردن سریع، از دکمه انتشار/پیش‌نویس استفاده کن. حذف بازی قابل بازگشت نیست.</p>
+        </section>
       </div>
+
+      <section class="settings-card">
+        <div class="settings-heading"><div><div class="panel-kicker">SITE SETTINGS / 05</div><h3>پیام بالای صفحه اصلی</h3><p>یک اطلاعیه کوتاه برای همه بازدیدکنندگان نمایش بده؛ هر زمان خواستی خاموشش کن.</p></div><span class="settings-icon">✦</span></div>
+        <form id="announcementForm">
+          <label>متن پیام<input id="announcementText" maxlength="180" placeholder="مثلاً: به‌زودی بخش راهنماهای CS2 اضافه می‌شود."></label>
+          <label class="check-label"><input type="checkbox" id="announcementEnabled"> نمایش پیام در سایت</label>
+          <button class="admin-button primary" type="submit" id="saveAnnouncementButton">ذخیره تنظیمات</button>
+          <div class="form-message" id="announcementMessage" role="status"></div>
+        </form>
+      </section>
     </section>
   </main>
   <footer class="admin-footer"><span>GAMEVORTEX CONTROL CENTER</span><span>دسترسی فقط برای مدیران مجاز</span></footer>
