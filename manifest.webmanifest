@@ -1,0 +1,20 @@
+{
+  "name": "GameVortex | دنیای بازی‌ها",
+  "short_name": "GameVortex",
+  "description": "کشف بازی‌ها، فیلتر سبک‌ها و ساختن کتابخانه بازی‌های موردعلاقه",
+  "lang": "fa",
+  "dir": "rtl",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#08090d",
+  "theme_color": "#08090d",
+  "icons": [
+    {
+      "src": "favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
