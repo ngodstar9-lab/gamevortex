@@ -12,6 +12,7 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <div class="announcement-bar" id="announcementBar" hidden><span class="announcement-star">✦</span><span id="announcementText"></span><button id="announcementClose" aria-label="بستن اعلان">×</button></div>
   <div class="ambient ambient-one"></div><div class="ambient ambient-two"></div>
   <header class="topbar">
     <a class="brand" href="#home" aria-label="GameVortex صفحه اصلی"><span class="brand-mark">G</span><span class="brand-name">GAME<span>VORTEX</span></span></a>
@@ -52,6 +53,10 @@
       </div>
       <div class="library-tools">
         <label class="search-box"><span>⌕</span><input id="gameSearch" type="search" placeholder="اسم بازی یا سبک موردنظرت..." aria-label="جست‌وجوی بازی"><kbd>/</kbd></label>
+        <div class="library-actions">
+          <select id="sortGames" aria-label="مرتب‌سازی بازی‌ها"><option value="default">ترتیب پیشنهادی</option><option value="name">نام بازی: الف تا ی</option><option value="recent">جدیدترین‌ها</option></select>
+          <button class="favorites-filter" id="favoritesOnlyButton" type="button" aria-pressed="false">♡ فقط علاقه‌مندی‌ها <span id="favoritesCount">۰</span></button>
+        </div>
         <div class="filters" role="group" aria-label="فیلتر دسته‌بندی بازی‌ها">
           <button class="filter active" data-filter="all">همه <span>08</span></button>
           <button class="filter" data-filter="action">اکشن</button>
