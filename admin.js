@@ -326,6 +326,26 @@
     }
   });
 
+  $("passwordForm").addEventListener("submit",async event=>{
+    event.preventDefault();
+    const nextPassword=$("newPassword").value;
+    const confirmPassword=$("confirmPassword").value;
+    if(nextPassword.length<10){message($("passwordMessage"),"رمز جدید باید حداقل ۱۰ نویسه داشته باشد.");return;}
+    if(nextPassword!==confirmPassword){message($("passwordMessage"),"دو رمز واردشده با هم یکسان نیستند.");return;}
+    setBusy($("changePasswordButton"),true);
+    try{
+      const {error}=await supabase.auth.updateUser({password:nextPassword});
+      if(error)throw error;
+      $("newPassword").value="";
+      $("confirmPassword").value="";
+      message($("passwordMessage"),"رمز عبور حساب مدیر به‌روزرسانی شد.",true);
+    }catch(error){
+      message($("passwordMessage"),"رمز تغییر نکرد: "+friendlyError(error));
+    }finally{
+      setBusy($("changePasswordButton"),false,"به‌روزرسانی رمز");
+    }
+  });
+
   $("logoutButton").addEventListener("click",async()=>{
     await supabase.auth.signOut();
     currentUser=null;
