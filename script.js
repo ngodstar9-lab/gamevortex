@@ -1,120 +1,152 @@
 (() => {
   "use strict";
-  const config = window.GAMEVORTEX_CONFIG || {};
-  const grid = document.getElementById("gameGrid");
-  const search = document.getElementById("gameSearch");
-  const empty = document.getElementById("emptyState");
-  const resultCount = document.getElementById("resultCount");
-  const filters = Array.from(document.querySelectorAll(".filter"));
-  const modal = document.getElementById("gameModal");
-  const $ = id => document.getElementById(id);
-  const favoritesKey = "gamevortex-favorites-v1";
-  const categories = {action:"اکشن",strategy:"استراتژی",puzzle:"فکری",sport:"ورزشی",creative:"خلاقانه"};
-  const themeLabels = {cs:"TACTICAL / FPS",portal:"THINK DIFFERENT",civ:"BUILD YOUR EMPIRE",rocket:"READY TO SCORE?",minecraft:"BUILD YOUR WORLD",human:"PUZZLE / PHYSICS",track:"RACE / REPEAT",stardew:"TAKE IT EASY"};
-  const themeMarks = {cs:"CS2",portal:"PORTAL 2",civ:"CIV VI",rocket:"ROCKET",minecraft:"MINECRAFT",human:"HUMAN",track:"TRACKMANIA",stardew:"STARDEW"};
-  let activeFilter = "all";
-  let cards = Array.from(document.querySelectorAll(".game-card"));
-  let favorites = [];
+  const config=window.GAMEVORTEX_CONFIG || {};
+  const grid=document.getElementById("gameGrid");
+  const search=document.getElementById("gameSearch");
+  const empty=document.getElementById("emptyState");
+  const resultCount=document.getElementById("resultCount");
+  const filters=Array.from(document.querySelectorAll(".filter"));
+  const modal=document.getElementById("gameModal");
+  const $=id=>document.getElementById(id);
+  const favoritesKey="gamevortex-favorites-v1";
+  const categories={action:"اکشن",strategy:"استراتژی",puzzle:"فکری",sport:"ورزشی",creative:"خلاقانه"};
+  const categoryEnglish={action:"ACTION",strategy:"STRATEGY",puzzle:"PUZZLE",sport:"SPORT",creative:"CREATIVE"};
+  const themeLabels={cs:"TACTICAL / FPS",portal:"THINK DIFFERENT",civ:"BUILD YOUR EMPIRE",rocket:"READY TO SCORE?",minecraft:"BUILD YOUR WORLD",human:"PUZZLE / PHYSICS",track:"RACE / REPEAT",stardew:"TAKE IT EASY"};
+  const themeMarks={cs:"CS2",portal:"PORTAL 2",civ:"CIV VI",rocket:"ROCKET",minecraft:"MINECRAFT",human:"HUMAN",track:"TRACKMANIA",stardew:"STARDEW"};
+  let activeFilter="all";
+  let favoritesOnly=false;
+  let cards=Array.from(document.querySelectorAll(".game-card"));
+  let favorites=[];
   let toastTimer;
-  let previousFocus = null;
+  let previousFocus=null;
+  let announcementDismissed=false;
 
-  try {
-    const saved = JSON.parse(localStorage.getItem(favoritesKey) || "[]");
-    favorites = Array.isArray(saved) ? saved : [];
-  } catch { favorites = []; }
+  try{
+    const saved=JSON.parse(localStorage.getItem(favoritesKey)||"[]");
+    favorites=Array.isArray(saved)?saved:[];
+  }catch{favorites=[];}
 
-  function toast(text) {
-    const node = $("toast");
-    node.textContent = text;
+  function toast(text){
+    const node=$("toast");
+    node.textContent=text;
     node.classList.add("show");
     window.clearTimeout(toastTimer);
-    toastTimer = window.setTimeout(() => node.classList.remove("show"), 2100);
+    toastTimer=window.setTimeout(()=>node.classList.remove("show"),2200);
   }
-  function safeUrl(value) {
-    if (!value) return "";
-    try {
-      const url = new URL(value);
-      return ["https:", "http:"].includes(url.protocol) ? url.href : "";
-    } catch { return ""; }
+  function safeUrl(value,httpsOnly=false){
+    if(!value)return "";
+    try{
+      const url=new URL(value);
+      if(httpsOnly ? url.protocol!=="https:" : !["https:","http:"].includes(url.protocol))return "";
+      return url.href;
+    }catch{return "";}
   }
-  function make(tag, className, text) {
-    const node = document.createElement(tag);
-    if (className) node.className = className;
-    if (text !== undefined) node.textContent = text;
+  function make(tag,className,text){
+    const node=document.createElement(tag);
+    if(className)node.className=className;
+    if(text!==undefined)node.textContent=text;
     return node;
   }
-  function setFavoriteButton(card) {
-    const button = card.querySelector(".favorite-button");
-    const saved = favorites.includes(card.dataset.title);
-    button.setAttribute("aria-pressed", String(saved));
-    button.setAttribute("aria-label", saved ? "حذف از علاقه‌مندی‌ها" : "افزودن به علاقه‌مندی‌ها");
-    button.textContent = saved ? "♥" : "♡";
+  function setFavoriteButton(card){
+    const button=card.querySelector(".favorite-button");
+    if(!button)return;
+    const saved=favorites.includes(card.dataset.title);
+    button.setAttribute("aria-pressed",String(saved));
+    button.setAttribute("aria-label",saved?"حذف از علاقه‌مندی‌ها":"افزودن به علاقه‌مندی‌ها");
+    button.textContent=saved?"♥":"♡";
   }
-  function syncFavorites() {
+  function syncFavorites(){
     cards.forEach(setFavoriteButton);
+    $("favoritesCount").textContent=String(favorites.length).replace(/[0-9]/g,d=>"۰۱۲۳۴۵۶۷۸۹"[Number(d)]);
   }
-  function openDetails(card) {
-    previousFocus = document.activeElement;
-    $("modalTitle").textContent = card.dataset.title;
-    $("modalStyle").textContent = card.dataset.style || "";
-    $("modalDescription").textContent = card.dataset.description || "";
-    $("modalSymbol").textContent = card.dataset.title.split(/\s+/).slice(0,2).map(word => word[0]).join("").toUpperCase();
-    const link = safeUrl(card.dataset.link);
-    $("modalLink").href = link || "#";
-    $("modalLink").hidden = !link;
-    $("modalLink").firstChild.textContent = (card.dataset.linkLabel || "اطلاعات بیشتر") + " ";
-    modal.hidden = false;
-    document.body.style.overflow = "hidden";
+  function openDetails(card){
+    previousFocus=document.activeElement;
+    $("modalTitle").textContent=card.dataset.title;
+    $("modalStyle").textContent=card.dataset.style||"";
+    $("modalDescription").textContent=card.dataset.description||"";
+    $("modalSymbol").textContent=(card.dataset.title||"GV").split(/\s+/).slice(0,2).map(word=>word[0]).join("").toUpperCase();
+    const link=safeUrl(card.dataset.link);
+    $("modalLink").href=link||"#";
+    $("modalLink").hidden=!link;
+    $("modalLink").firstChild.textContent=(card.dataset.linkLabel||"اطلاعات بیشتر")+" ";
+    modal.hidden=false;
+    document.body.style.overflow="hidden";
     $("modalClose").focus();
   }
-  function closeDetails() {
-    modal.hidden = true;
-    document.body.style.overflow = "";
-    if (previousFocus && typeof previousFocus.focus === "function") previousFocus.focus();
+  function closeDetails(){
+    modal.hidden=true;
+    document.body.style.overflow="";
+    if(previousFocus&&typeof previousFocus.focus==="function")previousFocus.focus();
   }
-  function bindCard(card) {
-    card.querySelector(".favorite-button").addEventListener("click", () => {
-      const title = card.dataset.title;
-      if (favorites.includes(title)) {
-        favorites = favorites.filter(item => item !== title);
+  function bindCard(card){
+    const favorite=card.querySelector(".favorite-button");
+    const details=card.querySelector("[data-details]");
+    if(favorite)favorite.addEventListener("click",()=>{
+      const title=card.dataset.title;
+      if(favorites.includes(title)){
+        favorites=favorites.filter(item=>item!==title);
         toast("از علاقه‌مندی‌ها حذف شد.");
-      } else {
+      }else{
         favorites.push(title);
         toast("به علاقه‌مندی‌ها اضافه شد.");
       }
-      try { localStorage.setItem(favoritesKey, JSON.stringify(favorites)); } catch {}
+      try{localStorage.setItem(favoritesKey,JSON.stringify(favorites));}catch{}
       syncFavorites();
+      applyFilters();
     });
-    card.querySelector("[data-details]").addEventListener("click", () => openDetails(card));
+    if(details)details.addEventListener("click",()=>openDetails(card));
   }
-  function createGameCard(game) {
-    const theme = Object.hasOwn(themeMarks, game.art_theme) ? game.art_theme : "cs";
-    const category = Object.hasOwn(categories, game.category) ? game.category : "action";
-    const card = make("article", "game-card");
-    card.dataset.category = category;
-    card.dataset.title = game.title || "بازی";
-    card.dataset.name = [game.title, categories[category], game.description].join(" ");
-    card.dataset.style = categories[category];
-    card.dataset.description = game.description || "";
-    card.dataset.link = game.official_url || "";
-    card.dataset.linkLabel = "اطلاعات بیشتر";
+  function createGameCard(game,index){
+    const theme=Object.hasOwn(themeMarks,game.art_theme)?game.art_theme:"cs";
+    const category=Object.hasOwn(categories,game.category)?game.category:"action";
+    const card=make("article","game-card");
+    card.dataset.category=category;
+    card.dataset.title=game.title||"بازی";
+    card.dataset.name=[game.title,categories[category],game.description,game.platforms].join(" ");
+    card.dataset.style=categories[category];
+    card.dataset.description=game.description||"";
+    card.dataset.link=game.official_url||"";
+    card.dataset.linkLabel="اطلاعات بیشتر";
+    card.dataset.order=String(game.display_order??index);
+    card.dataset.created=game.created_at||"";
 
-    const art = make("div", "game-art art-" + theme);
-    art.append(make("small", "art-tag", themeLabels[theme]));
-    art.append(make("strong", "dynamic-art-identity", themeMarks[theme]));
-    art.append(make("span", "art-corner", String(game.display_order || "").padStart(2,"0")));
-    const info = make("div", "card-info");
-    info.append(make("div", "card-kicker", categories[category] + " · GAMEVORTEX"));
-    info.append(make("h3", "", game.title || "بازی جدید"));
-    const summary = (game.description || "").trim();
-    info.append(make("p", "", summary.length > 58 ? summary.slice(0,55) + "..." : summary));
-    const bottom = make("div", "card-bottom");
-    const detail = make("button", "details-button");
-    detail.type = "button"; detail.dataset.details = "";
+    const art=make("div","game-art art-"+theme);
+    art.append(make("small","art-tag",themeLabels[theme]));
+    const cover=safeUrl(game.cover_url,true);
+    if(cover){
+      art.classList.add("has-cover");
+      const img=make("img","game-cover");
+      img.src=cover;
+      img.alt="تصویر بازی "+(game.title||"");
+      img.loading="lazy";
+      img.referrerPolicy="no-referrer";
+      img.addEventListener("error",()=>img.remove(),{once:true});
+      art.append(img);
+    }else{
+      art.append(make("strong","dynamic-art-identity",themeMarks[theme]));
+    }
+    if(game.is_featured)art.append(make("span","featured-chip","★ ویژه"));
+    art.append(make("span","art-corner",String(game.display_order??index+1).padStart(2,"0")));
+    const info=make("div","card-info");
+    info.append(make("div","card-kicker",(categories[category]||"بازی")+" · GAMEVORTEX"));
+    info.append(make("h3","",game.title||"بازی جدید"));
+    const summary=(game.description||"").trim();
+    info.append(make("p","",summary.length>66?summary.slice(0,63)+"...":summary));
+    const platforms=(game.platforms||"").split(",").map(p=>p.trim()).filter(Boolean).slice(0,3);
+    if(platforms.length){
+      const tags=make("div","platform-tags");
+      platforms.forEach(platform=>tags.append(make("span","",platform)));
+      info.append(tags);
+    }
+    const bottom=make("div","card-bottom");
+    const detail=make("button","details-button");
+    detail.type="button";
+    detail.dataset.details="";
     detail.append(document.createTextNode("جزئیات بازی "));
-    detail.append(make("span", "", "←"));
-    const favorite = make("button", "favorite-button", "♡");
-    favorite.type = "button"; favorite.setAttribute("aria-pressed","false");
+    detail.append(make("span","","←"));
+    const favorite=make("button","favorite-button","♡");
+    favorite.type="button";
+    favorite.setAttribute("aria-pressed","false");
     favorite.setAttribute("aria-label","افزودن به علاقه‌مندی‌ها");
     bottom.append(detail,favorite);
     info.append(bottom);
@@ -122,89 +154,153 @@
     bindCard(card);
     return card;
   }
-
-  function applyFilters() {
-    const query = search.value.trim().toLocaleLowerCase();
-    let count = 0;
-    cards.forEach(card => {
-      const haystack = (card.dataset.name + " " + card.dataset.style + " " + card.innerText).toLocaleLowerCase();
-      const visible = (activeFilter === "all" || card.dataset.category === activeFilter) && (!query || haystack.includes(query));
-      card.hidden = !visible;
-      if (visible) count++;
-    });
-    empty.hidden = count !== 0;
-    grid.hidden = count === 0;
-    if (resultCount) resultCount.textContent = "نمایش " + count + " بازی";
+  function sortCards(){
+    const mode=$("sortGames").value;
+    const sorted=cards.slice();
+    if(mode==="name")sorted.sort((a,b)=>a.dataset.title.localeCompare(b.dataset.title,"fa"));
+    else if(mode==="recent")sorted.sort((a,b)=>(Date.parse(b.dataset.created)||0)-(Date.parse(a.dataset.created)||0));
+    else sorted.sort((a,b)=>(Number(a.dataset.order)||0)-(Number(b.dataset.order)||0));
+    sorted.forEach(card=>grid.append(card));
+    cards=sorted;
   }
-
-  filters.forEach(button => button.addEventListener("click", () => {
-    filters.forEach(item => item.classList.remove("active"));
-    button.classList.add("active");
-    activeFilter = button.dataset.filter;
-    applyFilters();
-  }));
-  search.addEventListener("input", applyFilters);
-  $("resetFilters").addEventListener("click", () => {
-    search.value = "";
-    activeFilter = "all";
-    filters.forEach(item => item.classList.toggle("active", item.dataset.filter === "all"));
-    applyFilters();
-  });
-  $("modalClose").addEventListener("click", closeDetails);
-  modal.addEventListener("click", event => { if (event.target === modal) closeDetails(); });
-  document.addEventListener("keydown", event => {
-    if (event.key === "Escape" && !modal.hidden) closeDetails();
-    if (event.key === "/" && modal.hidden && !["INPUT","TEXTAREA"].includes(document.activeElement.tagName)) {
-      event.preventDefault(); search.focus();
+  function applyFilters(){
+    const query=search.value.trim().toLocaleLowerCase();
+    let count=0;
+    cards.forEach(card=>{
+      const haystack=(card.dataset.name+" "+card.dataset.style+" "+card.innerText).toLocaleLowerCase();
+      const matchesCategory=activeFilter==="all"||card.dataset.category===activeFilter;
+      const matchesQuery=!query||haystack.includes(query);
+      const matchesFavorite=!favoritesOnly||favorites.includes(card.dataset.title);
+      const visible=matchesCategory&&matchesQuery&&matchesFavorite;
+      card.hidden=!visible;
+      if(visible)count++;
+    });
+    empty.hidden=count!==0;
+    grid.hidden=count===0;
+    if(resultCount)resultCount.textContent="نمایش "+count+" بازی";
+  }
+  function updateHeroStats(games){
+    const count=$("liveGameCount");
+    if(count){
+      count.replaceChildren(document.createTextNode(String(games.length).padStart(2,"0")));
+      count.append(make("span","","+"));
     }
-  });
-  $("surpriseButton").addEventListener("click", () => {
-    const visible = cards.filter(card => !card.hidden);
-    const pool = visible.length ? visible : cards;
-    if (!pool.length) return;
-    const chosen = pool[Math.floor(Math.random() * pool.length)];
-    cards.forEach(card => card.classList.remove("picked"));
-    chosen.scrollIntoView({behavior:"smooth",block:"center"});
-    chosen.classList.add("picked");
-    toast("پیشنهاد شانسی: " + chosen.dataset.title);
-    window.setTimeout(() => chosen.classList.remove("picked"),1800);
-  });
-  const menuToggle = $("menuToggle");
-  const nav = document.querySelector(".nav");
-  menuToggle.addEventListener("click", () => {
-    const open = nav.classList.toggle("open");
-    menuToggle.setAttribute("aria-expanded",String(open));
-    menuToggle.textContent = open ? "×" : "☰";
-  });
-  nav.querySelectorAll("a").forEach(link => link.addEventListener("click", () => {
-    nav.classList.remove("open");
-    menuToggle.setAttribute("aria-expanded","false");
-    menuToggle.textContent = "☰";
-  }));
-  $("currentYear").textContent = String(new Date().getFullYear());
-
-  cards.forEach(bindCard);
-  syncFavorites();
-  applyFilters();
-
-  async function loadSharedGames() {
-    const ready = typeof window.supabase !== "undefined" &&
-      /^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(config.supabaseUrl || "") &&
-      typeof config.supabasePublishableKey === "string" && config.supabasePublishableKey.length > 20;
-    if (!ready) return;
-    try {
-      const client = window.supabase.createClient(config.supabaseUrl,config.supabasePublishableKey);
-      const {data,error} = await client.from("games").select("id,title,category,description,official_url,art_theme,display_order").eq("is_published",true).order("display_order",{ascending:true});
-      if (error) throw error;
-      if (!Array.isArray(data)) return;
-      const newCards = data.map(createGameCard);
+  }
+  function updateFeatured(game){
+    if(!game)return;
+    $("spotlightLabel").textContent="منتخب مدیران GameVortex";
+    $("spotlightGameTitle").textContent=game.title;
+    $("spotlightDescription").textContent=game.description||"این بازی به‌عنوان انتخاب ویژه GameVortex معرفی شده است.";
+    $("spotlightCategory").textContent=categoryEnglish[game.category]||"FEATURED";
+    const link=safeUrl(game.official_url);
+    $("spotlightLink").href=link||"#games";
+    $("spotlightLink").firstChild.textContent=link?"اطلاعات بیشتر ":"مشاهده در کتابخانه ";
+    $("spotlightLink").hidden=false;
+  }
+  function showAnnouncement(settings){
+    const enabled=settings.announcement_enabled==="true";
+    const text=(settings.announcement_text||"").trim();
+    const bar=$("announcementBar");
+    if(!bar||!enabled||!text||announcementDismissed)return;
+    $("announcementText").textContent=text;
+    bar.hidden=false;
+  }
+  async function loadSharedData(){
+    const ready=typeof window.supabase!=="undefined"&&
+      /^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(config.supabaseUrl||"")&&
+      typeof config.supabasePublishableKey==="string"&&config.supabasePublishableKey.length>20;
+    if(!ready)return;
+    const client=window.supabase.createClient(config.supabaseUrl,config.supabasePublishableKey);
+    try{
+      const {data,error}=await client.from("games")
+        .select("id,title,category,description,official_url,art_theme,display_order,is_featured,platforms,cover_url,created_at")
+        .eq("is_published",true).order("display_order",{ascending:true});
+      if(error)throw error;
+      if(!Array.isArray(data))return;
+      const newCards=data.map(createGameCard);
       grid.replaceChildren(...newCards);
-      cards = newCards;
+      cards=newCards;
       syncFavorites();
       applyFilters();
-    } catch (error) {
-      console.warn("GameVortex shared library is not available; showing the built-in library.",error);
+      updateHeroStats(data);
+      const featured=data.find(game=>game.is_featured);
+      if(featured)updateFeatured(featured);
+    }catch(error){
+      console.warn("GameVortex could not load its shared game library; using the built-in preview.",error);
+    }
+    try{
+      const {data,error}=await client.from("site_settings").select("key,value").in("key",["announcement_text","announcement_enabled"]);
+      if(error)throw error;
+      const settings=Object.fromEntries((data||[]).map(item=>[item.key,item.value]));
+      showAnnouncement(settings);
+    }catch(error){
+      console.info("GameVortex announcement settings are not configured yet.",error);
     }
   }
-  loadSharedGames();
+
+  filters.forEach(button=>button.addEventListener("click",()=>{
+    filters.forEach(item=>item.classList.remove("active"));
+    button.classList.add("active");
+    activeFilter=button.dataset.filter;
+    applyFilters();
+  }));
+  search.addEventListener("input",applyFilters);
+  $("sortGames").addEventListener("change",()=>{sortCards();applyFilters();});
+  $("favoritesOnlyButton").addEventListener("click",()=>{
+    favoritesOnly=!favoritesOnly;
+    $("favoritesOnlyButton").classList.toggle("active",favoritesOnly);
+    $("favoritesOnlyButton").setAttribute("aria-pressed",String(favoritesOnly));
+    applyFilters();
+  });
+  $("resetFilters").addEventListener("click",()=>{
+    search.value="";
+    activeFilter="all";
+    favoritesOnly=false;
+    $("favoritesOnlyButton").classList.remove("active");
+    $("favoritesOnlyButton").setAttribute("aria-pressed","false");
+    $("sortGames").value="default";
+    sortCards();
+    filters.forEach(item=>item.classList.toggle("active",item.dataset.filter==="all"));
+    applyFilters();
+  });
+  $("modalClose").addEventListener("click",closeDetails);
+  modal.addEventListener("click",event=>{if(event.target===modal)closeDetails();});
+  document.addEventListener("keydown",event=>{
+    if(event.key==="Escape"&&!modal.hidden)closeDetails();
+    if(event.key==="/"&&modal.hidden&&!["INPUT","TEXTAREA"].includes(document.activeElement.tagName)){
+      event.preventDefault();search.focus();
+    }
+  });
+  $("surpriseButton").addEventListener("click",()=>{
+    const visible=cards.filter(card=>!card.hidden);
+    const pool=visible.length?visible:cards;
+    if(!pool.length)return;
+    const chosen=pool[Math.floor(Math.random()*pool.length)];
+    cards.forEach(card=>card.classList.remove("picked"));
+    chosen.scrollIntoView({behavior:"smooth",block:"center"});
+    chosen.classList.add("picked");
+    toast("پیشنهاد شانسی: "+chosen.dataset.title);
+    window.setTimeout(()=>chosen.classList.remove("picked"),1800);
+  });
+  $("announcementClose").addEventListener("click",()=>{
+    announcementDismissed=true;
+    $("announcementBar").hidden=true;
+  });
+  const menuToggle=$("menuToggle");
+  const nav=document.querySelector(".nav");
+  menuToggle.addEventListener("click",()=>{
+    const open=nav.classList.toggle("open");
+    menuToggle.setAttribute("aria-expanded",String(open));
+    menuToggle.textContent=open?"×":"☰";
+  });
+  nav.querySelectorAll("a").forEach(link=>link.addEventListener("click",()=>{
+    nav.classList.remove("open");
+    menuToggle.setAttribute("aria-expanded","false");
+    menuToggle.textContent="☰";
+  }));
+  $("currentYear").textContent=String(new Date().getFullYear());
+  cards.forEach((card,index)=>{card.dataset.order=String(index);bindCard(card);});
+  syncFavorites();
+  applyFilters();
+  loadSharedData();
 })();
