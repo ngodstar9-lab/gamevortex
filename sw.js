@@ -1,4 +1,4 @@
-const CACHE_NAME = "gamevortex-shell-v2";
+const CACHE_NAME = "gamevortex-shell-v3";
 const CORE_FILES = [
   "./",
   "./index.html",
@@ -9,7 +9,8 @@ const CORE_FILES = [
   "./favicon.svg",
   "./admin.html",
   "./admin.css",
-  "./admin.js"
+  "./admin.js",
+  "./404.html"
 ];
 
 self.addEventListener("install", event => {
