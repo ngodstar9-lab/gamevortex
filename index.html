@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml"><link rel="manifest" href="manifest.webmanifest"><link rel="stylesheet" href="style.css">
 </head>
 <body>
   <div class="announcement-bar" id="announcementBar" hidden><span class="announcement-star">✦</span><span id="announcementText"></span><button id="announcementClose" aria-label="بستن اعلان">×</button></div>
@@ -28,7 +28,7 @@
         <div class="eyebrow"><span class="pulse-dot"></span> دنیای گیمرها، یک‌جا</div>
         <h1>بازی کن؛<br><span>متفاوت تجربه کن.</span></h1>
         <p class="hero-lead">اینجا قراره بازی بعدی موردعلاقه‌ات رو پیدا کنی. از رقابت‌های نفس‌گیر تا ماجراجویی‌های فکری؛ وارد دنیای GameVortex شو.</p>
-        <div class="hero-actions"><a class="button button-primary" href="#games">شروع کشف بازی‌ها <span>←</span></a><a class="button button-ghost" href="#spotlight">پیشنهاد این هفته</a></div>
+        <div class="hero-actions"><a class="button button-primary" href="#games">شروع کشف بازی‌ها <span>←</span></a><a class="button button-ghost" href="#spotlight">پیشنهاد این هفته</a><button class="button install-button" id="installAppButton" type="button" hidden>نصب GameVortex ↓</button></div>
         <div class="hero-stats">
           <div><strong id="liveGameCount">08<span>+</span></strong><small>بازی برای کشف</small></div><i></i>
           <div><strong>05</strong><small>دسته‌بندی</small></div><i></i>
@@ -127,7 +127,7 @@
       <a class="button button-primary modal-link" id="modalLink" href="#" target="_blank" rel="noopener noreferrer">اطلاعات بیشتر <span>↗</span></a>
     </section>
   </div>
-  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <button class="back-to-top" id="backToTop" type="button" aria-label="بازگشت به بالای صفحه">↑</button><div class="toast" id="toast" role="status" aria-live="polite"></div>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="supabase-config.js"></script><script src="script.js"></script>
 </body>
 </html>
