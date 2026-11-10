@@ -1,6 +1,6 @@
 // تنظیمات اتصال اختصاصی GameVortex
-// فقط کلید عمومی Publishable را قرار بده؛ کلید Secret/service_role ممنوع است.
+// فقط کلید عمومی Publishable؛ کلید Secret/service_role را هرگز اینجا نگذار.
 window.GAMEVORTEX_CONFIG = {
   supabaseUrl: "https://sjsrffubzuobthnuxnco.supabase.co",
-  supabasePublishableKey: ""
+  supabasePublishableKey: "sb_publishable_0yyf3pyOcfqJ5mGUsJ5Xdw_ihHscmDL"
 };
