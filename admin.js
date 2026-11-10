@@ -205,10 +205,11 @@
     document.body.append(anchor);
     anchor.click();
     anchor.remove();
-    URL.revokeObjectURL(url);
+    window.setTimeout(() => URL.revokeObjectURL(url), 1200);
   }
   function csvEscape(value) {
-    const text=String(value == null ? "" : value);
+    let text=String(value == null ? "" : value);
+    if (/^[\\s]*[=+@-]/.test(text)) text="\u0027"+text;
     return '"' + text.replace(/"/g,'""') + '"';
   }
   function exportCsv() {
