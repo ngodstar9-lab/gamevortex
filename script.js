@@ -299,6 +299,30 @@
     menuToggle.textContent="☰";
   }));
   $("currentYear").textContent=String(new Date().getFullYear());
+  const backToTop=$("backToTop");
+  window.addEventListener("scroll",()=>backToTop.classList.toggle("visible",window.scrollY>520),{passive:true});
+  backToTop.addEventListener("click",()=>window.scrollTo({top:0,behavior:"smooth"}));
+  let installPrompt=null;
+  const installButton=$("installAppButton");
+  window.addEventListener("beforeinstallprompt",event=>{
+    event.preventDefault();
+    installPrompt=event;
+    installButton.hidden=false;
+  });
+  installButton.addEventListener("click",async()=>{
+    if(!installPrompt){toast("برای نصب، از منوی مرورگر گزینه Install یا Add to Home Screen را انتخاب کن.");return;}
+    installPrompt.prompt();
+    await installPrompt.userChoice;
+    installPrompt=null;
+    installButton.hidden=true;
+  });
+  window.addEventListener("appinstalled",()=>{
+    installButton.hidden=true;
+    toast("GameVortex به دستگاهت اضافه شد.");
+  });
+  if("serviceWorker" in navigator && location.protocol==="https:"){
+    window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(error=>console.info("Offline cache unavailable",error)));
+  }
   cards.forEach((card,index)=>{card.dataset.order=String(index);bindCard(card);});
   syncFavorites();
   applyFilters();
