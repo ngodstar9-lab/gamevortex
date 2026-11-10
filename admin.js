@@ -1,53 +1,74 @@
 (() => {
   "use strict";
   const config = window.GAMEVORTEX_CONFIG || {};
-  const setupNotice = document.getElementById("setupNotice");
-  const loginPanel = document.getElementById("loginPanel");
-  const dashboard = document.getElementById("dashboard");
-  const loginForm = document.getElementById("loginForm");
-  const loginMessage = document.getElementById("loginMessage");
-  const gameMessage = document.getElementById("gameMessage");
-  const gameForm = document.getElementById("gameForm");
-  const tableBody = document.getElementById("gamesTableBody");
-  const loginButton = document.getElementById("loginButton");
-  const saveButton = document.getElementById("saveGameButton");
   const $ = id => document.getElementById(id);
+  const loginPanel = $("loginPanel");
+  const dashboard = $("dashboard");
+  const loginForm = $("loginForm");
+  const loginMessage = $("loginMessage");
+  const gameMessage = $("gameMessage");
+  const announcementMessage = $("announcementMessage");
+  const gameForm = $("gameForm");
+  const tableBody = $("gamesTableBody");
+  const loginButton = $("loginButton");
+  const saveButton = $("saveGameButton");
+  const categories = {action:"اکشن",strategy:"استراتژی",puzzle:"فکری",sport:"ورزشی",creative:"خلاقانه"};
   let supabase = null;
   let games = [];
   let currentUser = null;
 
   function message(node, text, success = false) {
-    node.textContent = text;
-    node.classList.toggle("success", success);
+    node.textContent = text || "";
+    node.classList.toggle("success", Boolean(success));
   }
   function setBusy(button, busy, label) {
     button.disabled = busy;
     if (label) button.textContent = busy ? "لطفاً صبر کن..." : label;
   }
-  function showLogin() {
-    loginPanel.hidden = false;
-    dashboard.hidden = true;
-  }
-  function showDashboard() {
-    loginPanel.hidden = true;
-    dashboard.hidden = false;
-  }
+  function showLogin() { loginPanel.hidden = false; dashboard.hidden = true; }
+  function showDashboard() { loginPanel.hidden = true; dashboard.hidden = false; }
   function configReady() {
     return typeof window.supabase !== "undefined" &&
       /^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(config.supabaseUrl || "") &&
       typeof config.supabasePublishableKey === "string" &&
       config.supabasePublishableKey.length > 20;
   }
+  function friendlyError(error) {
+    const code = error && error.code;
+    const text = error && error.message ? error.message : String(error || "خطای ناشناخته");
+    if (code === "42P01" || code === "PGRST205") return "جدول موردنیاز پیدا نشد. فایل supabase-upgrade.sql را در SQL Editor اجرا کن و صفحه را تازه‌سازی کن.";
+    if (code === "42703" || code === "PGRST204") return "ستون‌های جدید هنوز ساخته نشده‌اند. فایل supabase-upgrade.sql را یک‌بار اجرا کن.";
+    if (code === "42501" || /row-level security|permission denied/i.test(text)) return "دسترسی دیتابیس رد شد. مطمئن شو UID همین حساب در جدول admin_users ثبت است و سیاست‌های RLS اجرا شده‌اند.";
+    if (/invalid login credentials/i.test(text)) return "ایمیل یا رمز عبور درست نیست. همان حسابی را استفاده کن که در Authentication ساخته‌ای.";
+    if (/email not confirmed/i.test(text)) return "ایمیل حساب هنوز تأیید نشده است. ایمیل Supabase را باز و حساب را تأیید کن.";
+    return text;
+  }
   function textCell(text) {
     const cell = document.createElement("td");
-    cell.textContent = text;
+    cell.textContent = text == null ? "" : String(text);
     return cell;
+  }
+  function button(label, className, action) {
+    const el = document.createElement("button");
+    el.type = "button";
+    el.textContent = label;
+    if (className) el.className = className;
+    el.addEventListener("click", action);
+    return el;
+  }
+  function safeHttps(value) {
+    if (!value) return null;
+    try {
+      const url = new URL(value);
+      return url.protocol === "https:" ? url.href : null;
+    } catch { return null; }
   }
   function clearEditor() {
     gameForm.reset();
     $("gameId").value = "";
-    $("gameOrder").value = String(games.length);
+    $("gameOrder").value = String(games.length + 1);
     $("gamePublished").checked = true;
+    $("gameFeatured").checked = false;
     $("editorTitle").textContent = "افزودن بازی جدید";
     saveButton.textContent = "ذخیره بازی ←";
     message(gameMessage, "");
@@ -56,157 +77,267 @@
     $("totalGames").textContent = String(games.length);
     $("publishedGames").textContent = String(games.filter(g => g.is_published).length);
     $("draftGames").textContent = String(games.filter(g => !g.is_published).length);
+    $("featuredGames").textContent = String(games.filter(g => g.is_featured).length);
+  }
+  function visibleGames() {
+    const query = $("gamesSearch").value.trim().toLocaleLowerCase();
+    const status = $("statusFilter").value;
+    const category = $("categoryFilter").value;
+    return games.filter(game => {
+      const matchesQuery = !query || (game.title + " " + (game.description || "")).toLocaleLowerCase().includes(query);
+      const matchesStatus = status === "all" ||
+        (status === "published" && game.is_published) ||
+        (status === "draft" && !game.is_published) ||
+        (status === "featured" && game.is_featured);
+      const matchesCategory = category === "all" || game.category === category;
+      return matchesQuery && matchesStatus && matchesCategory;
+    });
   }
   function renderGames() {
     tableBody.replaceChildren();
-    if (!games.length) {
+    const shown = visibleGames();
+    $("visibleCount").textContent = "نمایش " + shown.length + " از " + games.length;
+    if (!shown.length) {
       const row = document.createElement("tr");
-      const cell = textCell("هنوز بازی‌ای ثبت نشده است.");
-      cell.colSpan = 4;
+      const cell = textCell(games.length ? "با این فیلتر بازی‌ای پیدا نشد." : "هنوز بازی‌ای ثبت نشده است.");
+      cell.colSpan = 5;
       row.append(cell);
       tableBody.append(row);
     }
-    games.forEach(game => {
+    shown.forEach(game => {
       const row = document.createElement("tr");
       row.append(textCell(game.title));
-      const cats = {action:"اکشن",strategy:"استراتژی",puzzle:"فکری",sport:"ورزشی",creative:"خلاقانه"};
-      row.append(textCell(cats[game.category] || game.category));
+      row.append(textCell(categories[game.category] || game.category));
       const statusCell = document.createElement("td");
       const status = document.createElement("span");
       status.className = "status-pill" + (game.is_published ? "" : " draft");
       status.textContent = game.is_published ? "منتشرشده" : "پیش‌نویس";
       statusCell.append(status);
       row.append(statusCell);
-      const actions = document.createElement("td");
-      const group = document.createElement("div");
-      group.className = "table-actions";
-      const edit = document.createElement("button");
-      edit.type = "button"; edit.textContent = "ویرایش";
-      edit.addEventListener("click", () => editGame(game));
-      const remove = document.createElement("button");
-      remove.type = "button"; remove.className = "delete"; remove.textContent = "حذف";
-      remove.addEventListener("click", () => deleteGame(game));
-      group.append(edit, remove); actions.append(group); row.append(actions);
+      const featuredCell = document.createElement("td");
+      if (game.is_featured) {
+        const badge = document.createElement("span");
+        badge.className = "feature-pill";
+        badge.textContent = "★ ویژه";
+        featuredCell.append(badge);
+      } else featuredCell.textContent = "—";
+      row.append(featuredCell);
+      const actionCell = document.createElement("td");
+      const actions = document.createElement("div");
+      actions.className = "table-actions";
+      actions.append(button("ویرایش","",() => editGame(game)));
+      actions.append(button(game.is_published ? "پیش‌نویس کن" : "منتشر کن","",() => toggleField(game,"is_published",!game.is_published)));
+      actions.append(button(game.is_featured ? "لغو ویژه" : "★ ویژه","",() => toggleField(game,"is_featured",!game.is_featured)));
+      actions.append(button("حذف","delete",() => deleteGame(game)));
+      actionCell.append(actions);
+      row.append(actionCell);
       tableBody.append(row);
     });
     updateStats();
   }
   async function loadGames() {
-    message(gameMessage, "");
-    const { data, error } = await supabase.from("games").select("*").order("display_order", {ascending:true}).order("created_at", {ascending:false});
-    if (error) throw error;
-    games = data || [];
+    const {data,error}=await supabase.from("games").select("*").order("display_order",{ascending:true}).order("created_at",{ascending:false});
+    if(error) throw error;
+    games=data || [];
     renderGames();
+    $("lastUpdated").textContent="آخرین به‌روزرسانی: "+new Date().toLocaleTimeString("fa-IR",{hour:"2-digit",minute:"2-digit"});
+  }
+  async function loadSettings() {
+    const {data,error}=await supabase.from("site_settings").select("key,value").in("key",["announcement_text","announcement_enabled"]);
+    if(error) throw error;
+    const settings=Object.fromEntries((data || []).map(item=>[item.key,item.value]));
+    $("announcementText").value=settings.announcement_text || "";
+    $("announcementEnabled").checked=settings.announcement_enabled === "true";
   }
   function editGame(game) {
-    $("gameId").value = game.id;
-    $("gameTitle").value = game.title || "";
-    $("gameCategory").value = game.category || "action";
-    $("gameTheme").value = game.art_theme || "cs";
-    $("gameDescription").value = game.description || "";
-    $("gameUrl").value = game.official_url || "";
-    $("gameOrder").value = String(game.display_order ?? 0);
-    $("gamePublished").checked = Boolean(game.is_published);
-    $("editorTitle").textContent = "ویرایش: " + game.title;
-    saveButton.textContent = "ذخیره تغییرات ←";
-    message(gameMessage, "حالت ویرایش فعال شد.", true);
+    $("gameId").value=game.id;
+    $("gameTitle").value=game.title || "";
+    $("gameCategory").value=game.category || "action";
+    $("gameTheme").value=game.art_theme || "cs";
+    $("gameDescription").value=game.description || "";
+    $("gameUrl").value=game.official_url || "";
+    $("gameCover").value=game.cover_url || "";
+    $("gamePlatforms").value=game.platforms || "PC";
+    $("gameOrder").value=String(game.display_order ?? 0);
+    $("gamePublished").checked=Boolean(game.is_published);
+    $("gameFeatured").checked=Boolean(game.is_featured);
+    $("editorTitle").textContent="ویرایش: "+game.title;
+    saveButton.textContent="ذخیره تغییرات ←";
+    message(gameMessage,"حالت ویرایش فعال شد.",true);
     $("gameTitle").focus();
-    window.scrollTo({top:$("gameForm").getBoundingClientRect().top + window.scrollY - 95,behavior:"smooth"});
+    window.scrollTo({top:$("gameForm").getBoundingClientRect().top+window.scrollY-95,behavior:"smooth"});
+  }
+  async function toggleField(game,field,value) {
+    message(gameMessage,"");
+    const patch={}; patch[field]=value;
+    const {error}=await supabase.from("games").update(patch).eq("id",game.id);
+    if(error){message(gameMessage,"خطا در تغییر وضعیت: "+friendlyError(error));return;}
+    await loadGames();
+    message(gameMessage,"وضعیت بازی به‌روزرسانی شد.",true);
   }
   async function deleteGame(game) {
-    if (!window.confirm("بازی «" + game.title + "» حذف شود؟ این کار قابل بازگشت نیست.")) return;
-    const { error } = await supabase.from("games").delete().eq("id", game.id);
-    if (error) { message(gameMessage, "خطا در حذف: " + error.message); return; }
+    if(!window.confirm("بازی «"+game.title+"» حذف شود؟ این کار قابل بازگشت نیست.")) return;
+    const {error}=await supabase.from("games").delete().eq("id",game.id);
+    if(error){message(gameMessage,"خطا در حذف: "+friendlyError(error));return;}
     await loadGames();
-    message(gameMessage, "بازی حذف شد.", true);
+    if($("gameId").value===game.id) clearEditor();
+    message(gameMessage,"بازی حذف شد.",true);
   }
   async function verifyAdmin(user) {
-    const { data, error } = await supabase.from("admin_users").select("user_id").eq("user_id", user.id).maybeSingle();
-    if (error) throw error;
-    if (!data) {
+    const {data,error}=await supabase.from("admin_users").select("user_id").eq("user_id",user.id).maybeSingle();
+    if(error) throw error;
+    if(!data){
       await supabase.auth.signOut();
-      throw new Error("این حساب در فهرست مدیران GameVortex نیست. شناسه کاربر باید در جدول admin_users ثبت شود.");
+      throw new Error("این حساب در فهرست مدیران GameVortex نیست. UID حسابی که وارد شدی باید در جدول admin_users باشد.");
     }
-    currentUser = user;
-    $("signedInAs").textContent = "واردشده با " + (user.email || "حساب مدیر");
+    currentUser=user;
+    $("signedInAs").textContent="واردشده با "+(user.email || "حساب مدیر");
     showDashboard();
     await loadGames();
+    await loadSettings();
+  }
+  function downloadFile(name,content,type) {
+    const blob=new Blob([content],{type:type});
+    const url=URL.createObjectURL(blob);
+    const anchor=document.createElement("a");
+    anchor.href=url;
+    anchor.download=name;
+    document.body.append(anchor);
+    anchor.click();
+    anchor.remove();
+    URL.revokeObjectURL(url);
+  }
+  function csvEscape(value) {
+    const text=String(value == null ? "" : value);
+    return '"' + text.replace(/"/g,'""') + '"';
+  }
+  function exportCsv() {
+    const headers=["title","category","description","official_url","cover_url","platforms","art_theme","display_order","is_published","is_featured"];
+    const lines=[headers.join(","),...games.map(game=>headers.map(key=>csvEscape(game[key])).join(","))];
+    downloadFile("gamevortex-games.csv","\uFEFF"+lines.join("\r\n"),"text/csv;charset=utf-8");
+  }
+  function exportJson() {
+    const backup={exported_at:new Date().toISOString(),project:"GameVortex",games:games};
+    downloadFile("gamevortex-backup.json",JSON.stringify(backup,null,2),"application/json");
   }
 
-  if (!configReady()) {
-    setupNotice.hidden = false;
-    loginPanel.hidden = true;
+  if(!configReady()){
+    $("setupNotice").hidden=false;
+    loginPanel.hidden=true;
     return;
   }
-  supabase = window.supabase.createClient(config.supabaseUrl, config.supabasePublishableKey, {
-    auth: {persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}
+  supabase=window.supabase.createClient(config.supabaseUrl,config.supabasePublishableKey,{
+    auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}
   });
 
-  loginForm.addEventListener("submit", async event => {
+  loginForm.addEventListener("submit",async event=>{
     event.preventDefault();
-    message(loginMessage, "");
-    setBusy(loginButton, true);
-    try {
-      const {data,error} = await supabase.auth.signInWithPassword({
+    message(loginMessage,"");
+    setBusy(loginButton,true);
+    try{
+      const {data,error}=await supabase.auth.signInWithPassword({
         email:$("loginEmail").value.trim(),
         password:$("loginPassword").value
       });
-      if (error) throw error;
+      if(error) throw error;
       await verifyAdmin(data.user);
-    } catch (error) {
+    }catch(error){
       showLogin();
-      message(loginMessage, error.message || "ورود انجام نشد.");
-    } finally {
-      setBusy(loginButton, false, "ورود به پنل ←");
+      message(loginMessage,friendlyError(error));
+    }finally{
+      setBusy(loginButton,false,"ورود به پنل ←");
     }
   });
 
-  gameForm.addEventListener("submit", async event => {
+  gameForm.addEventListener("submit",async event=>{
     event.preventDefault();
-    message(gameMessage, "");
-    setBusy(saveButton, true);
-    const id = $("gameId").value;
-    const record = {
+    message(gameMessage,"");
+    const id=$("gameId").value;
+    const officialUrl=$("gameUrl").value.trim();
+    const coverUrl=$("gameCover").value.trim();
+    if(officialUrl && !safeHttps(officialUrl)){message(gameMessage,"لینک رسمی باید با https:// شروع شود.");return;}
+    if(coverUrl && !safeHttps(coverUrl)){message(gameMessage,"لینک تصویر باید HTTPS باشد.");return;}
+    const record={
       title:$("gameTitle").value.trim(),
       category:$("gameCategory").value,
       art_theme:$("gameTheme").value,
       description:$("gameDescription").value.trim(),
-      official_url:$("gameUrl").value.trim() || null,
+      official_url:officialUrl || null,
+      cover_url:coverUrl || null,
+      platforms:$("gamePlatforms").value.trim() || "PC",
       display_order:Math.max(0,Number.parseInt($("gameOrder").value,10) || 0),
-      is_published:$("gamePublished").checked
+      is_published:$("gamePublished").checked,
+      is_featured:$("gameFeatured").checked,
+      updated_at:new Date().toISOString()
     };
-    try {
-      const result = id
+    setBusy(saveButton,true);
+    try{
+      const result=id
         ? await supabase.from("games").update(record).eq("id",id)
         : await supabase.from("games").insert(record);
-      if (result.error) throw result.error;
+      if(result.error) throw result.error;
       await loadGames();
       clearEditor();
-      message(gameMessage, id ? "تغییرات ذخیره شد و در سایت اعمال می‌شود." : "بازی جدید اضافه شد و در سایت نمایش داده می‌شود.", true);
-    } catch (error) {
-      message(gameMessage, "خطا در ذخیره: " + error.message);
-    } finally {
-      setBusy(saveButton, false, id ? "ذخیره تغییرات ←" : "ذخیره بازی ←");
+      message(gameMessage,id?"تغییرات ذخیره شد و در سایت اعمال می‌شود.":"بازی جدید به کتابخانه اضافه شد.",true);
+    }catch(error){
+      message(gameMessage,"ذخیره نشد: "+friendlyError(error));
+    }finally{
+      setBusy(saveButton,false,id?"ذخیره تغییرات ←":"ذخیره بازی ←");
     }
   });
 
-  $("clearFormButton").addEventListener("click", clearEditor);
-  $("reloadGamesButton").addEventListener("click", async () => {
-    try { await loadGames(); message(gameMessage, "فهرست به‌روز شد.", true); }
-    catch (error) { message(gameMessage, "خطا در دریافت بازی‌ها: " + error.message); }
+  $("duplicateGameButton").addEventListener("click",()=>{
+    const title=$("gameTitle").value.trim();
+    if(!title){message(gameMessage,"اول یک بازی را انتخاب یا اطلاعاتش را وارد کن.");return;}
+    $("gameId").value="";
+    $("gameTitle").value=title+" (نسخه کپی)";
+    $("editorTitle").textContent="افزودن کپی از بازی";
+    saveButton.textContent="ذخیره بازی جدید ←";
+    message(gameMessage,"نسخه کپی آماده است؛ نام را تغییر بده و ذخیره کن.",true);
+    $("gameTitle").focus();
   });
-  $("logoutButton").addEventListener("click", async () => {
+  $("clearFormButton").addEventListener("click",clearEditor);
+  $("reloadGamesButton").addEventListener("click",async()=>{
+    try{await loadGames();message(gameMessage,"فهرست بازی‌ها به‌روز شد.",true);}
+    catch(error){message(gameMessage,friendlyError(error));}
+  });
+  ["gamesSearch","statusFilter","categoryFilter"].forEach(id=>$(id).addEventListener(id==="gamesSearch"?"input":"change",renderGames));
+  $("exportCsvButton").addEventListener("click",exportCsv);
+  $("exportJsonButton").addEventListener("click",exportJson);
+
+  $("announcementForm").addEventListener("submit",async event=>{
+    event.preventDefault();
+    const text=$("announcementText").value.trim();
+    const enabled=$("announcementEnabled").checked;
+    if(enabled && !text){message(announcementMessage,"برای فعال‌کردن اعلان، ابتدا متن پیام را بنویس.");return;}
+    setBusy($("saveAnnouncementButton"),true);
+    const values=[
+      {key:"announcement_text",value:text,updated_by:currentUser.id,updated_at:new Date().toISOString()},
+      {key:"announcement_enabled",value:String(enabled),updated_by:currentUser.id,updated_at:new Date().toISOString()}
+    ];
+    try{
+      const {error}=await supabase.from("site_settings").upsert(values,{onConflict:"key"});
+      if(error) throw error;
+      message(announcementMessage,"تنظیمات پیام ذخیره شد.",true);
+    }catch(error){
+      message(announcementMessage,"ذخیره نشد: "+friendlyError(error));
+    }finally{
+      setBusy($("saveAnnouncementButton"),false,"ذخیره تنظیمات");
+    }
+  });
+
+  $("logoutButton").addEventListener("click",async()=>{
     await supabase.auth.signOut();
-    currentUser = null;
+    currentUser=null;
     showLogin();
-    message(loginMessage, "از حساب خارج شدی.", true);
+    message(loginMessage,"از حساب خارج شدی.",true);
   });
 
-  supabase.auth.getSession().then(async ({data,error}) => {
-    if (error) { showLogin(); return; }
-    if (data.session) {
-      try { await verifyAdmin(data.session.user); }
-      catch (err) { showLogin(); message(loginMessage, err.message); }
+  supabase.auth.getSession().then(async({data,error})=>{
+    if(error){showLogin();message(loginMessage,friendlyError(error));return;}
+    if(data.session){
+      try{await verifyAdmin(data.session.user);}
+      catch(err){showLogin();message(loginMessage,friendlyError(err));}
     }
-  });
+  }).catch(error=>{showLogin();message(loginMessage,friendlyError(error));});
 })();
