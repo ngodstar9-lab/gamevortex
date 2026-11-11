@@ -486,11 +486,12 @@
   if("serviceWorker" in navigator && location.protocol==="https:"){
     window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(error=>console.info("Offline cache unavailable",error)));
   }
+  const originalCards=cards.slice();
   const existingTitles=new Set(cards.map(card=>(card.dataset.title||"").trim().toLocaleLowerCase()));
   const catalogCards=(window.GAMEVORTEX_CATALOG||[]).filter(game=>!existingTitles.has((game.title||"").trim().toLocaleLowerCase())).map(createGameCard);
   if(catalogCards.length)grid.append(...catalogCards);
   cards=[...cards,...catalogCards];
-  cards.forEach((card,index)=>{card.dataset.order=card.dataset.order||String(index);bindCard(card);});
+  originalCards.forEach((card,index)=>{card.dataset.order=card.dataset.order||String(index);bindCard(card);});
   populatePlatformFilter();
   syncFavorites();
   syncCompare();
