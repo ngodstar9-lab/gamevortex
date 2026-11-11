@@ -197,6 +197,7 @@
     const settings=Object.fromEntries((data || []).map(item=>[item.key,item.value]));
     $("announcementText").value=settings.announcement_text || "";
     $("announcementEnabled").checked=settings.announcement_enabled === "true";
+    updateAnnouncementPreview();
   }
   function editGame(game) {
     $("gameId").value=game.id;
@@ -507,7 +508,6 @@
     try{await loadGames();message(gameMessage,"فهرست بازی‌ها به‌روز شد.",true);}
     catch(error){message(gameMessage,friendlyError(error));}
   });
-  ["gamesSearch","statusFilter","categoryFilter"].forEach(id=>$(id).addEventListener(id==="gamesSearch"?"input":"change",renderGames));
   $("exportCsvButton").addEventListener("click",exportCsv);
   $("exportJsonButton").addEventListener("click",exportJson);
 
