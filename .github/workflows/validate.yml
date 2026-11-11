@@ -19,6 +19,9 @@ jobs:
           node --check script.js
           node --check admin.js
           node --check catalog.js
+          node --check public-features.js
+          node --check admin-enhancements.js
           node --check sw.js
+          node scripts/check-feature-counts.js
       - name: Validate web manifest
         run: node -e "JSON.parse(require('fs').readFileSync('manifest.webmanifest','utf8')); console.log('manifest OK')"

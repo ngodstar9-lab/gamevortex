@@ -245,6 +245,7 @@
     showDashboard();
     await loadGames();
     await loadSettings();
+    window.dispatchEvent(new Event("gamevortex:admin-ready"));
   }
   function downloadFile(name,content,type) {
     const blob=new Blob([content],{type:type});
@@ -436,6 +437,33 @@
   supabase=window.supabase.createClient(config.supabaseUrl,config.supabasePublishableKey,{
     auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}
   });
+  window.GAMEVORTEX_ADMIN_API = {
+    getGames: () => games.map(game => ({...game})),
+    getSelectedIds: () => Array.from(selectedIds),
+    getVisibleGames: () => visibleGames().map(game => ({...game})),
+    setSelectedIds: ids => {
+      const valid = new Set(games.map(game => game.id));
+      selectedIds = new Set((Array.isArray(ids) ? ids : []).filter(id => valid.has(id)));
+      renderGames();
+    },
+    refresh: loadGames,
+    bulkUpdate,
+    bulkDelete,
+    editGame,
+    exportCsv,
+    exportJson,
+    getUser: () => currentUser ? {id:currentUser.id,email:currentUser.email} : null,
+    updateGames: async changes => {
+      if (!Array.isArray(changes)) throw new Error("فهرست تغییرات معتبر نیست.");
+      for (const item of changes) {
+        if (!item || !item.id || !item.patch || typeof item.patch !== "object") continue;
+        const {error} = await supabase.from("games").update({...item.patch,updated_at:new Date().toISOString()}).eq("id",item.id);
+        if (error) throw error;
+      }
+      await loadGames();
+      return true;
+    }
+  };
 
   loginForm.addEventListener("submit",async event=>{
     event.preventDefault();
