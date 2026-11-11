@@ -62,6 +62,82 @@
     cards.forEach(setFavoriteButton);
     $("favoritesCount").textContent=String(favorites.length).replace(/[0-9]/g,d=>"۰۱۲۳۴۵۶۷۸۹"[Number(d)]);
   }
+
+  function toggleCompare(card){
+    const title=card.dataset.title;
+    if(compareIds.includes(title))compareIds=compareIds.filter(item=>item!==title);
+    else{
+      if(compareIds.length>=3){toast("برای مقایسه، حداکثر سه بازی انتخاب کن.");return;}
+      compareIds.push(title);
+    }
+    try{localStorage.setItem(compareKey,JSON.stringify(compareIds));}catch{}
+    syncCompare();
+  }
+  function syncCompare(){
+    const bar=$("compareBar");
+    if(!bar)return;
+    compareIds=compareIds.filter(title=>cards.some(card=>card.dataset.title===title));
+    bar.hidden=compareIds.length===0;
+    $("compareSummary").textContent=String(compareIds.length).replace(/[0-9]/g,d=>"۰۱۲۳۴۵۶۷۸۹"[Number(d)])+" بازی برای مقایسه";
+    cards.forEach(card=>{
+      const button=card.querySelector(".compare-button");
+      if(!button)return;
+      const selected=compareIds.includes(card.dataset.title);
+      button.textContent=selected?"✓ انتخاب شد":"＋ مقایسه";
+      button.setAttribute("aria-pressed",String(selected));
+    });
+  }
+  function closeCompare(){
+    const node=$("compareModal");
+    if(node)node.hidden=true;
+    document.body.style.overflow=modal.hidden?"":"hidden";
+  }
+  function clearCompare(){
+    compareIds=[];
+    try{localStorage.removeItem(compareKey);}catch{}
+    syncCompare();
+    closeCompare();
+  }
+  function renderCompare(){
+    if(compareIds.length<2){toast("برای مقایسه، حداقل دو بازی انتخاب کن.");return;}
+    const selected=compareIds.map(title=>cards.find(card=>card.dataset.title===title)).filter(Boolean);
+    const body=$("compareTableBody");
+    body.replaceChildren();
+    const rows=[
+      ["نام بازی",card=>card.dataset.title],
+      ["دسته‌بندی",card=>categories[card.dataset.category]||"—"],
+      ["سبک",card=>card.dataset.style||"—"],
+      ["پلتفرم‌ها",card=>card.dataset.platforms||"PC"],
+      ["توضیحات",card=>card.dataset.description||"—"]
+    ];
+    rows.forEach(([label,getValue])=>{
+      const tr=document.createElement("tr");
+      tr.append(make("th","",label));
+      selected.forEach(card=>tr.append(make("td","",getValue(card))));
+      body.append(tr);
+    });
+    const links=document.createElement("tr");
+    links.append(make("th","","لینک رسمی"));
+    selected.forEach(card=>{
+      const td=document.createElement("td");
+      const url=safeUrl(card.dataset.link);
+      if(url){const a=make("a","compare-official-link","مشاهده ↗");a.href=url;a.target="_blank";a.rel="noopener noreferrer";td.append(a);}
+      else td.textContent="ثبت نشده";
+      links.append(td);
+    });
+    body.append(links);
+    $("compareModal").hidden=false;
+    document.body.style.overflow="hidden";
+  }
+  async function shareSite(){
+    const url=location.href.split("#")[0];
+    try{
+      if(navigator.share)await navigator.share({title:"GameVortex",text:"کتابخانه بازی‌ها و راهنماهای GameVortex",url});
+      else if(navigator.clipboard&&navigator.clipboard.writeText){await navigator.clipboard.writeText(url);toast("لینک GameVortex کپی شد.");}
+      else toast("آدرس سایت: "+url);
+    }catch(error){if(error&&error.name!=="AbortError")toast("امکان اشتراک‌گذاری در این مرورگر فعال نیست.");}
+  }
+
   function openDetails(card){
     previousFocus=document.activeElement;
     $("modalTitle").textContent=card.dataset.title;
@@ -98,6 +174,16 @@
       applyFilters();
     });
     if(details)details.addEventListener("click",()=>openDetails(card));
+    if(!card.dataset.platforms)card.dataset.platforms="PC";
+    let compare=card.querySelector(".compare-button");
+    if(!compare){
+      compare=make("button","compare-button","＋ مقایسه");
+      compare.type="button";
+      compare.setAttribute("aria-pressed","false");
+      const bottom=card.querySelector(".card-bottom");
+      if(bottom)bottom.insertBefore(compare,favorite||null);
+    }
+    compare.addEventListener("click",()=>toggleCompare(card));
   }
   function createGameCard(game,index){
     const theme=Object.hasOwn(themeMarks,game.art_theme)?game.art_theme:"cs";
