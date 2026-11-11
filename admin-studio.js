@@ -208,7 +208,7 @@
       });
       $(id)?.addEventListener("change",updatePreview);
     });
-    $("gameForm").addEventListener("submit",()=>{try{localStorage.removeItem(DRAFT_KEY);}catch{}});
+
     $("gameTitle").insertAdjacentHTML("afterend",'<div class="gv-field-hint"><span>نام یکتا و کوتاه بهتر دیده می‌شود.</span><span id="gvTitleCounter">0/90</span></div>');
     $("gameDescription").insertAdjacentHTML("afterend",'<div class="gv-field-hint"><span>توضیح کوتاه و خوانا؛ حداکثر ۷۰۰ نویسه.</span><span id="gvDescCounter">0/700</span></div>');
     document.addEventListener("keydown",event=>{
