@@ -269,6 +269,149 @@
     downloadFile("gamevortex-backup.json",JSON.stringify(backup,null,2),"application/json");
   }
 
+
+  async function bulkUpdate(patch) {
+    const ids=Array.from(selectedIds);
+    if(!ids.length)return;
+    const payload={...patch,updated_at:new Date().toISOString()};
+    const {error}=await supabase.from("games").update(payload).in("id",ids);
+    if(error){message(gameMessage,"عملیات گروهی انجام نشد: "+friendlyError(error));return;}
+    selectedIds.clear();
+    await loadGames();
+    message(gameMessage,ids.length+" بازی به‌روزرسانی شد.",true);
+  }
+  async function bulkDelete() {
+    const ids=Array.from(selectedIds);
+    if(!ids.length)return;
+    if(!window.confirm("می‌خواهی "+ids.length+" بازی انتخاب‌شده را حذف کنی؟ این کار قابل بازگشت نیست."))return;
+    const {error}=await supabase.from("games").delete().in("id",ids);
+    if(error){message(gameMessage,"حذف گروهی انجام نشد: "+friendlyError(error));return;}
+    selectedIds.clear();
+    await loadGames();
+    message(gameMessage,ids.length+" بازی حذف شد.",true);
+  }
+  function pickValue(row,snake,camel,fallback="") {
+    return row[snake]!==undefined?row[snake]:(row[camel]!==undefined?row[camel]:fallback);
+  }
+  function normalizeImportRows(rows) {
+    const allowedCategories=new Set(Object.keys(categories));
+    const allowedThemes=new Set(["cs","portal","civ","rocket","minecraft","human","track","stardew"]);
+    const incoming=[];
+    const seen=new Set(games.map(game=>(game.title||"").trim().toLocaleLowerCase()));
+    let duplicates=0,invalid=0;
+    rows.forEach((row,index)=>{
+      if(!row||typeof row!=="object"){invalid++;return;}
+      const title=String(pickValue(row,"title","title","")).trim().slice(0,90);
+      if(!title){invalid++;return;}
+      const key=title.toLocaleLowerCase();
+      if(seen.has(key)){duplicates++;return;}
+      const category=String(pickValue(row,"category","category","action"));
+      const theme=String(pickValue(row,"art_theme","artTheme","cs"));
+      const officialRaw=String(pickValue(row,"official_url","officialUrl","")||"").trim();
+      const coverRaw=String(pickValue(row,"cover_url","coverUrl","")||"").trim();
+      const publishedValue=pickValue(row,"is_published","isPublished",true);
+      const featuredValue=pickValue(row,"is_featured","isFeatured",false);
+      const orderValue=pickValue(row,"display_order","displayOrder",games.length+incoming.length+1);
+      incoming.push({
+        title,
+        category:allowedCategories.has(category)?category:"action",
+        art_theme:allowedThemes.has(theme)?theme:"cs",
+        description:String(pickValue(row,"description","description","توضیحات این بازی به‌زودی تکمیل می‌شود.")).trim().slice(0,700),
+        official_url:officialRaw?(safeHttps(officialRaw)||null):null,
+        cover_url:coverRaw?(safeHttps(coverRaw)||null):null,
+        platforms:String(pickValue(row,"platforms","platforms","PC")).trim().slice(0,120)||"PC",
+        display_order:Math.max(0,Number.parseInt(orderValue,10)||games.length+incoming.length+1),
+        is_published:publishedValue===true||String(publishedValue).toLowerCase()==="true"||String(publishedValue)==="1",
+        is_featured:featuredValue===true||String(featuredValue).toLowerCase()==="true"||String(featuredValue)==="1",
+        updated_at:new Date().toISOString()
+      });
+      seen.add(key);
+    });
+    return {incoming,duplicates,invalid};
+  }
+  async function importRows(rows,label="فایل") {
+    if(!Array.isArray(rows)||!rows.length){message(gameMessage,"در فایل، فهرست بازی معتبری پیدا نشد.");return 0;}
+    const result=normalizeImportRows(rows);
+    if(!result.incoming.length){
+      message(gameMessage,"بازی تازه‌ای برای افزودن وجود ندارد؛ تکراری: "+result.duplicates+"، نامعتبر: "+result.invalid+".");
+      return 0;
+    }
+    let inserted=0;
+    for(let i=0;i<result.incoming.length;i+=10){
+      const chunk=result.incoming.slice(i,i+10);
+      const {error}=await supabase.from("games").insert(chunk);
+      if(error)throw error;
+      inserted+=chunk.length;
+    }
+    await loadGames();
+    message(gameMessage,inserted+" بازی از "+label+" اضافه شد؛ تکراری: "+result.duplicates+"، نامعتبر: "+result.invalid+".",true);
+    return inserted;
+  }
+  async function importSuggestedCatalog() {
+    const list=window.GAMEVORTEX_CATALOG||[];
+    if(!list.length){message(gameMessage,"فهرست پیشنهادی بارگیری نشده است.");return;}
+    setBusy($("importCatalogButton"),true);
+    try{
+      const added=await importRows(list,"کاتالوگ GameVortex");
+      $("catalogStatus").textContent=added?added+" بازی اضافه شد.":"بازی تازه‌ای لازم نبود.";
+    }catch(error){
+      message(gameMessage,"واردکردن کاتالوگ ناموفق بود: "+friendlyError(error));
+    }finally{
+      setBusy($("importCatalogButton"),false,"＋ افزودن ۴۰ بازی پیشنهادی");
+    }
+  }
+  function parseCsv(text) {
+    const rows=[];let row=[];let field="";let quoted=false;
+    for(let i=0;i<text.length;i++){
+      const ch=text[i],next=text[i+1];
+      if(ch==='"'&&quoted&&next==='"'){field+='"';i++;}
+      else if(ch==='"'){quoted=!quoted;}
+      else if(ch===","&&!quoted){row.push(field);field="";}
+      else if((ch==="\n"||ch==="\r")&&!quoted){
+        if(ch==="\r"&&next==="\n")i++;
+        row.push(field);field="";
+        if(row.some(value=>value.trim()!==""))rows.push(row);
+        row=[];
+      }else field+=ch;
+    }
+    row.push(field);if(row.some(value=>value.trim()!==""))rows.push(row);
+    if(rows.length<2)return [];
+    const headers=rows.shift().map(value=>value.trim().replace(/^\uFEFF/,""));
+    return rows.map(values=>Object.fromEntries(headers.map((header,index)=>[header,values[index]||""])));
+  }
+  async function importBackupFile(file) {
+    if(!file)return;
+    setBusy($("importBackupButton"),true);
+    try{
+      const text=await file.text();
+      let rows;
+      let settings=null;
+      if(file.name.toLowerCase().endsWith(".csv"))rows=parseCsv(text);
+      else{
+        const backup=JSON.parse(text);
+        rows=Array.isArray(backup)?backup:backup.games;
+        settings=backup.settings||null;
+      }
+      const count=await importRows(rows||[],"پشتیبان");
+      if(settings){
+        const values=Array.isArray(settings)?settings:Object.entries(settings).map(([key,value])=>({key,value:String(value)}));
+        const safeValues=values.filter(item=>item&&["announcement_text","announcement_enabled"].includes(item.key))
+          .map(item=>({key:item.key,value:String(item.value??""),updated_by:currentUser.id,updated_at:new Date().toISOString()}));
+        if(safeValues.length){
+          const {error}=await supabase.from("site_settings").upsert(safeValues,{onConflict:"key"});
+          if(error)throw error;
+          await loadSettings();
+        }
+      }
+      $("catalogStatus").textContent=count+" بازی از فایل وارد شد.";
+    }catch(error){
+      message(gameMessage,"فایل قابل واردکردن نیست: "+friendlyError(error));
+    }finally{
+      setBusy($("importBackupButton"),false,"وارد کردن CSV / JSON");
+      $("importFileInput").value="";
+    }
+  }
+
   if(!configReady()){
     $("setupNotice").hidden=false;
     loginPanel.hidden=true;
