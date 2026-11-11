@@ -70,9 +70,11 @@
 
         <section class="games-manager">
           <div class="games-manager-head"><div><div class="panel-kicker">YOUR LIBRARY / 04</div><h3>مدیریت بازی‌ها</h3></div><button class="admin-button ghost small" id="reloadGamesButton">↻ تازه‌سازی</button></div>
-          <div class="manager-tools"><input type="search" id="gamesSearch" placeholder="جست‌وجوی نام بازی..."><select id="statusFilter" aria-label="فیلتر وضعیت"><option value="all">همه وضعیت‌ها</option><option value="published">منتشرشده</option><option value="draft">پیش‌نویس</option><option value="featured">ویژه</option></select><select id="categoryFilter" aria-label="فیلتر دسته"><option value="all">همه دسته‌ها</option><option value="action">اکشن</option><option value="strategy">استراتژی</option><option value="puzzle">فکری</option><option value="sport">ورزشی</option><option value="creative">خلاقانه</option></select></div>
-          <div class="export-row"><button class="admin-button ghost small" id="exportCsvButton">خروجی CSV ↓</button><button class="admin-button ghost small" id="exportJsonButton">پشتیبان JSON ↓</button><span id="visibleCount"></span></div>
-          <div class="table-wrap"><table><thead><tr><th>نام بازی</th><th>دسته</th><th>وضعیت</th><th>ویژه</th><th>عملیات</th></tr></thead><tbody id="gamesTableBody"><tr><td colspan="5">در حال دریافت اطلاعات...</td></tr></tbody></table></div>
+          <div class="manager-tools"><input type="search" id="gamesSearch" placeholder="جست‌وجوی نام، توضیح یا پلتفرم..."><select id="statusFilter" aria-label="فیلتر وضعیت"><option value="all">همه وضعیت‌ها</option><option value="published">منتشرشده</option><option value="draft">پیش‌نویس</option><option value="featured">ویژه</option></select><select id="categoryFilter" aria-label="فیلتر دسته"><option value="all">همه دسته‌ها</option><option value="action">اکشن</option><option value="strategy">استراتژی</option><option value="puzzle">فکری</option><option value="sport">ورزشی</option><option value="creative">خلاقانه</option></select><select id="managerSort" aria-label="مرتب‌سازی"><option value="order">ترتیب نمایش</option><option value="name">نام بازی</option><option value="updated">آخرین تغییر</option></select></div>
+          <div class="catalog-tools"><button class="admin-button primary small" id="importCatalogButton" type="button">＋ افزودن ۴۰ بازی پیشنهادی</button><button class="admin-button ghost small" id="importBackupButton" type="button">وارد کردن CSV / JSON</button><input id="importFileInput" type="file" accept=".json,.csv,application/json,text/csv" hidden><button class="admin-button ghost small" id="copySiteUrlButton" type="button">کپی لینک سایت ↗</button><span id="catalogStatus" role="status"></span></div>
+          <div class="bulk-toolbar" id="bulkToolbar" hidden><label><input id="selectAllGames" type="checkbox"> انتخاب همه نتایج</label><span id="selectedCountText">۰ انتخاب</span><button class="admin-button small" id="bulkPublishButton" type="button">انتشار</button><button class="admin-button small" id="bulkDraftButton" type="button">پیش‌نویس</button><button class="admin-button small" id="bulkFeatureButton" type="button">★ ویژه</button><button class="admin-button small" id="bulkDeleteButton" type="button">حذف منتخب‌ها</button><button class="text-reset" id="clearSelectionButton" type="button">پاک‌کردن انتخاب</button></div>
+          <div class="export-row"><button class="admin-button ghost small" id="exportCsvButton">خروجی CSV ↓</button><button class="admin-button ghost small" id="exportJsonButton">پشتیبان کامل JSON ↓</button><span id="visibleCount"></span></div>
+          <div class="table-wrap"><table><thead><tr><th><input type="checkbox" id="selectAllVisible" aria-label="انتخاب همه بازی‌های قابل‌مشاهده"></th><th>نام بازی</th><th>دسته</th><th>وضعیت</th><th>ویژه</th><th>عملیات</th></tr></thead><tbody id="gamesTableBody"><tr><td colspan="5">در حال دریافت اطلاعات...</td></tr></tbody></table></div>
           <p class="table-note">برای نمایش یا مخفی‌کردن سریع، از دکمه انتشار/پیش‌نویس استفاده کن. حذف بازی قابل بازگشت نیست.</p>
         </section>
       </div>
@@ -80,9 +82,11 @@
       <section class="settings-card">
         <div class="settings-heading"><div><div class="panel-kicker">SITE SETTINGS / 05</div><h3>پیام بالای صفحه اصلی</h3><p>یک اطلاعیه کوتاه برای همه بازدیدکنندگان نمایش بده؛ هر زمان خواستی خاموشش کن.</p></div><span class="settings-icon">✦</span></div>
         <form id="announcementForm">
-          <label>متن پیام<input id="announcementText" maxlength="180" placeholder="مثلاً: به‌زودی بخش راهنماهای CS2 اضافه می‌شود."></label>
+          <label>متن پیام<input id="announcementText" maxlength="180" placeholder="مثلاً: به‌زودی بخش راهنماهای CS2 اضافه می‌شود."><small class="character-count" id="announcementCount">۰ / ۱۸۰</small></label>
+          <div class="announcement-templates"><span>قالب آماده:</span><button type="button" data-announcement-template="به GameVortex خوش آمدی! ۴۰ بازی تازه به کتابخانه اضافه شده‌اند.">بازی‌های تازه</button><button type="button" data-announcement-template="راهنماهای تازه GameVortex منتشر شدند؛ سری به مرکز راهنماها بزن.">راهنمای تازه</button><button type="button" data-announcement-template="GameVortex در حال به‌روزرسانی است؛ ممنون از همراهی تو.">به‌روزرسانی</button></div>
+          <div class="announcement-preview" id="announcementPreview"><span>پیش‌نمایش اعلان</span><strong id="announcementPreviewText">متن پیام اینجا نمایش داده می‌شود.</strong></div>
           <label class="check-label"><input type="checkbox" id="announcementEnabled"> نمایش پیام در سایت</label>
-          <button class="admin-button primary" type="submit" id="saveAnnouncementButton">ذخیره تنظیمات</button>
+          <div class="announcement-actions"><button class="admin-button primary" type="submit" id="saveAnnouncementButton">ذخیره تنظیمات</button><button class="admin-button ghost" type="button" id="clearAnnouncementButton">پاک کردن پیام</button></div>
           <div class="form-message" id="announcementMessage" role="status"></div>
         </form>
       </section>
@@ -98,5 +102,5 @@
     </section>
   </main>
   <footer class="admin-footer"><span>GAMEVORTEX CONTROL CENTER</span><span>دسترسی فقط برای مدیران مجاز</span></footer>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="supabase-config.js"></script><script src="admin.js"></script>
+  <script src="./supabase-config.js"></script><script src="./catalog.js"></script><script src="./admin.js"></script>
 </body></html>
