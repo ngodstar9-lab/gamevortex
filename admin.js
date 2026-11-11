@@ -1,4 +1,4 @@
-(() => {
+(async () => {
   "use strict";
   const config = window.GAMEVORTEX_CONFIG || {};
   const $ = id => document.getElementById(id);
@@ -16,6 +16,7 @@
   let supabase = null;
   let games = [];
   let currentUser = null;
+  let selectedIds = new Set();
 
   function message(node, text, success = false) {
     node.textContent = text || "";
@@ -28,10 +29,23 @@
   function showLogin() { loginPanel.hidden = false; dashboard.hidden = true; }
   function showDashboard() { loginPanel.hidden = true; dashboard.hidden = false; }
   function configReady() {
-    return typeof window.supabase !== "undefined" &&
-      /^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(config.supabaseUrl || "") &&
+    return /^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(config.supabaseUrl || "") &&
       typeof config.supabasePublishableKey === "string" &&
       config.supabasePublishableKey.length > 20;
+  }
+  function ensureSupabaseLibrary(timeoutMs=2500) {
+    if(window.supabase&&typeof window.supabase.createClient==="function")return Promise.resolve(true);
+    return new Promise(resolve=>{
+      let finished=false;
+      const finish=ready=>{if(finished)return;finished=true;resolve(Boolean(ready));};
+      const script=document.createElement("script");
+      script.src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2";
+      script.async=true;
+      script.onload=()=>finish(window.supabase&&typeof window.supabase.createClient==="function");
+      script.onerror=()=>finish(false);
+      document.head.append(script);
+      window.setTimeout(()=>finish(false),timeoutMs);
+    });
   }
   function friendlyError(error) {
     const code = error && error.code;
@@ -83,8 +97,9 @@
     const query = $("gamesSearch").value.trim().toLocaleLowerCase();
     const status = $("statusFilter").value;
     const category = $("categoryFilter").value;
-    return games.filter(game => {
-      const matchesQuery = !query || (game.title + " " + (game.description || "")).toLocaleLowerCase().includes(query);
+    const rows=games.filter(game => {
+      const searchable=[game.title,game.description,game.platforms,game.official_url].join(" ").toLocaleLowerCase();
+      const matchesQuery = !query || searchable.includes(query);
       const matchesStatus = status === "all" ||
         (status === "published" && game.is_published) ||
         (status === "draft" && !game.is_published) ||
@@ -92,6 +107,26 @@
       const matchesCategory = category === "all" || game.category === category;
       return matchesQuery && matchesStatus && matchesCategory;
     });
+    const sort=$("managerSort")?.value||"order";
+    if(sort==="name")rows.sort((a,b)=>(a.title||"").localeCompare(b.title||"","fa"));
+    else if(sort==="updated")rows.sort((a,b)=>(Date.parse(b.updated_at)||0)-(Date.parse(a.updated_at)||0));
+    else rows.sort((a,b)=>(Number(a.display_order)||0)-(Number(b.display_order)||0));
+    return rows;
+  }
+  function updateBulkControls(shown) {
+    const toolbar=$("bulkToolbar");
+    const visible=shown||visibleGames();
+    const ids=visible.map(game=>game.id);
+    const selectedVisible=ids.filter(id=>selectedIds.has(id)).length;
+    toolbar.hidden=selectedIds.size===0;
+    $("selectedCountText").textContent=String(selectedIds.size)+" انتخاب";
+    const allVisible=ids.length>0&&selectedVisible===ids.length;
+    $("selectAllVisible").checked=allVisible;
+    $("selectAllGames").checked=allVisible;
+    $("bulkPublishButton").disabled=selectedIds.size===0;
+    $("bulkDraftButton").disabled=selectedIds.size===0;
+    $("bulkFeatureButton").disabled=selectedIds.size===0;
+    $("bulkDeleteButton").disabled=selectedIds.size===0;
   }
   function renderGames() {
     tableBody.replaceChildren();
@@ -100,12 +135,23 @@
     if (!shown.length) {
       const row = document.createElement("tr");
       const cell = textCell(games.length ? "با این فیلتر بازی‌ای پیدا نشد." : "هنوز بازی‌ای ثبت نشده است.");
-      cell.colSpan = 5;
+      cell.colSpan = 6;
       row.append(cell);
       tableBody.append(row);
     }
     shown.forEach(game => {
       const row = document.createElement("tr");
+      const selectCell=document.createElement("td");
+      const checkbox=document.createElement("input");
+      checkbox.type="checkbox";
+      checkbox.checked=selectedIds.has(game.id);
+      checkbox.setAttribute("aria-label","انتخاب "+game.title);
+      checkbox.addEventListener("change",()=>{
+        if(checkbox.checked)selectedIds.add(game.id);else selectedIds.delete(game.id);
+        updateBulkControls(shown);
+      });
+      selectCell.append(checkbox);
+      row.append(selectCell);
       row.append(textCell(game.title));
       row.append(textCell(categories[game.category] || game.category));
       const statusCell = document.createElement("td");
@@ -134,6 +180,7 @@
       tableBody.append(row);
     });
     updateStats();
+    updateBulkControls(shown);
   }
   async function loadGames() {
     const {data,error}=await supabase.from("games").select("*").order("display_order",{ascending:true}).order("created_at",{ascending:false});
@@ -227,6 +274,14 @@
     loginPanel.hidden=true;
     return;
   }
+  const libraryReady=await ensureSupabaseLibrary();
+  if(!libraryReady){
+    showLogin();
+    message(loginMessage,"کتابخانه اتصال Supabase بارگیری نشد. اتصال اینترنت یا دسترسی به CDN را بررسی کن و دوباره صفحه را باز کن.");
+    loginButton.disabled=true;
+    return;
+  }
+  loginButton.disabled=false;
   supabase=window.supabase.createClient(config.supabaseUrl,config.supabasePublishableKey,{
     auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}
   });
