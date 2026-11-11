@@ -274,11 +274,15 @@
     if(resultCount)resultCount.textContent="نمایش "+count+" بازی";
   }
   function updateHeroStats(games){
+    const total=Array.isArray(games)?games.length:cards.length;
     const count=$("liveGameCount");
+    const localized=String(total).replace(/[0-9]/g,d=>"۰۱۲۳۴۵۶۷۸۹"[Number(d)]);
     if(count){
-      count.replaceChildren(document.createTextNode(String(games.length).padStart(2,"0")));
+      count.replaceChildren(document.createTextNode(localized));
       count.append(make("span","","+"));
     }
+    const allFilter=document.querySelector('.filter[data-filter="all"] span');
+    if(allFilter)allFilter.textContent=localized;
   }
   function updateFeatured(game){
     if(!game)return;
@@ -495,6 +499,7 @@
   populatePlatformFilter();
   syncFavorites();
   syncCompare();
+  updateHeroStats(cards);
   applyFilters();
   loadSharedData();
 })();
