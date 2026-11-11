@@ -249,7 +249,7 @@
     const mode=$("sortGames").value;
     const sorted=cards.slice();
     if(mode==="name")sorted.sort((a,b)=>a.dataset.title.localeCompare(b.dataset.title,"fa"));
-    else if(mode==="recent")sorted.sort((a,b)=>(Date.parse(b.dataset.created)||0)-(Date.parse(a.dataset.created)||0));
+    else if(mode==="recent")sorted.sort((a,b)=>(Date.parse(b.dataset.created)||Number(b.dataset.order)||0)-(Date.parse(a.dataset.created)||Number(a.dataset.order)||0));
     else sorted.sort((a,b)=>(Number(a.dataset.order)||0)-(Number(b.dataset.order)||0));
     sorted.forEach(card=>grid.append(card));
     cards=sorted;
@@ -262,7 +262,10 @@
       const matchesCategory=activeFilter==="all"||card.dataset.category===activeFilter;
       const matchesQuery=!query||haystack.includes(query);
       const matchesFavorite=!favoritesOnly||favorites.includes(card.dataset.title);
-      const visible=matchesCategory&&matchesQuery&&matchesFavorite;
+      const selectedPlatform=$("platformFilter")?$("platformFilter").value:"all";
+      const platformText=(card.dataset.platforms||"PC").toLocaleLowerCase();
+      const matchesPlatform=selectedPlatform==="all"||platformText.includes(selectedPlatform.toLocaleLowerCase());
+      const visible=matchesCategory&&matchesQuery&&matchesFavorite&&matchesPlatform;
       card.hidden=!visible;
       if(visible)count++;
     });
@@ -296,36 +299,97 @@
     $("announcementText").textContent=text;
     bar.hidden=false;
   }
+  function mergeCatalog(databaseGames){
+    const rows=Array.isArray(databaseGames)?databaseGames.slice():[];
+    const existing=new Set(rows.map(game=>(game.title||"").trim().toLocaleLowerCase()));
+    (window.GAMEVORTEX_CATALOG||[]).forEach(game=>{
+      const key=(game.title||"").trim().toLocaleLowerCase();
+      if(key&&!existing.has(key)){rows.push(game);existing.add(key);}
+    });
+    return rows;
+  }
+  function applyDatabaseGames(data){
+    if(!Array.isArray(data))return;
+    const merged=mergeCatalog(data);
+    const newCards=merged.map(createGameCard);
+    grid.replaceChildren(...newCards);
+    cards=newCards;
+    populatePlatformFilter();
+    syncFavorites();
+    syncCompare();
+    applyFilters();
+    updateHeroStats(merged);
+    const featured=data.find(game=>game.is_featured);
+    if(featured)updateFeatured(featured);
+  }
+  function populatePlatformFilter(){
+    const select=$("platformFilter");
+    if(!select)return;
+    const current=select.value||"all";
+    const values=new Set();
+    cards.forEach(card=>(card.dataset.platforms||"PC").split(",").forEach(item=>{
+      const value=item.trim();if(value)values.add(value);
+    }));
+    Array.from(values).sort((a,b)=>a.localeCompare(b)).forEach(value=>{
+      const exists=Array.from(select.options).some(option=>option.value.toLowerCase()===value.toLowerCase());
+      if(!exists){const option=make("option","",value);option.value=value;select.append(option);}
+    });
+    if(Array.from(select.options).some(option=>option.value===current))select.value=current;
+  }
+  function ensureSupabaseLibrary(timeoutMs=1800){
+    if(window.supabase&&typeof window.supabase.createClient==="function")return Promise.resolve(true);
+    return new Promise(resolve=>{
+      let finished=false;
+      const finish=ready=>{if(finished)return;finished=true;resolve(Boolean(ready));};
+      const script=document.createElement("script");
+      script.src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2";
+      script.async=true;
+      script.onload=()=>finish(window.supabase&&typeof window.supabase.createClient==="function");
+      script.onerror=()=>finish(false);
+      document.head.append(script);
+      window.setTimeout(()=>finish(false),timeoutMs);
+    });
+  }
   async function loadSharedData(){
+    const libraryReady=await ensureSupabaseLibrary();
+    if(!libraryReady){console.info("Showing local GameVortex catalogue; Supabase library is unavailable.");return;}
     const ready=typeof window.supabase!=="undefined"&&
       /^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(config.supabaseUrl||"")&&
       typeof config.supabasePublishableKey==="string"&&config.supabasePublishableKey.length>20;
     if(!ready)return;
     const client=window.supabase.createClient(config.supabaseUrl,config.supabasePublishableKey);
     try{
-      const {data,error}=await client.from("games")
+      const gamesRequest=client.from("games")
         .select("id,title,category,description,official_url,art_theme,display_order,is_featured,platforms,cover_url,created_at")
         .eq("is_published",true).order("display_order",{ascending:true});
-      if(error)throw error;
-      if(!Array.isArray(data))return;
-      const newCards=data.map(createGameCard);
-      grid.replaceChildren(...newCards);
-      cards=newCards;
-      syncFavorites();
-      applyFilters();
-      updateHeroStats(data);
-      const featured=data.find(game=>game.is_featured);
-      if(featured)updateFeatured(featured);
+      const result=await Promise.race([
+        gamesRequest,
+        new Promise(resolve=>window.setTimeout(()=>resolve({timedOut:true}),2600))
+      ]);
+      if(result.timedOut){
+        console.info("Supabase is slow; local games stay visible while the request continues.");
+        gamesRequest.then(({data,error})=>{if(!error)applyDatabaseGames(data);})
+          .catch(error=>console.info("Database request failed; local catalogue remains visible.",error));
+      }else if(result.error){
+        console.warn("Could not load shared games; local catalogue remains visible.",result.error);
+      }else{
+        applyDatabaseGames(result.data);
+      }
     }catch(error){
-      console.warn("GameVortex could not load its shared game library; using the built-in preview.",error);
+      console.warn("Could not load shared games; local catalogue remains visible.",error);
     }
     try{
-      const {data,error}=await client.from("site_settings").select("key,value").in("key",["announcement_text","announcement_enabled"]);
-      if(error)throw error;
-      const settings=Object.fromEntries((data||[]).map(item=>[item.key,item.value]));
-      showAnnouncement(settings);
+      const settingsRequest=client.from("site_settings").select("key,value").in("key",["announcement_text","announcement_enabled"]);
+      const settingsResult=await Promise.race([
+        settingsRequest,
+        new Promise(resolve=>window.setTimeout(()=>resolve({timedOut:true}),1800))
+      ]);
+      if(!settingsResult.timedOut&&!settingsResult.error){
+        const settings=Object.fromEntries((settingsResult.data||[]).map(item=>[item.key,item.value]));
+        showAnnouncement(settings);
+      }
     }catch(error){
-      console.info("GameVortex announcement settings are not configured yet.",error);
+      console.info("Announcement settings are not available yet.",error);
     }
   }
 
