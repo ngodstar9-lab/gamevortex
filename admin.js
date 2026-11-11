@@ -186,6 +186,8 @@
     const {data,error}=await supabase.from("games").select("*").order("display_order",{ascending:true}).order("created_at",{ascending:false});
     if(error) throw error;
     games=data || [];
+    const validIds=new Set(games.map(game=>game.id));
+    selectedIds=new Set(Array.from(selectedIds).filter(id=>validIds.has(id)));
     renderGames();
     $("lastUpdated").textContent="آخرین به‌روزرسانی: "+new Date().toLocaleTimeString("fa-IR",{hour:"2-digit",minute:"2-digit"});
   }
@@ -264,9 +266,14 @@
     const lines=[headers.join(","),...games.map(game=>headers.map(key=>csvEscape(game[key])).join(","))];
     downloadFile("gamevortex-games.csv","\uFEFF"+lines.join("\r\n"),"text/csv;charset=utf-8");
   }
-  function exportJson() {
-    const backup={exported_at:new Date().toISOString(),project:"GameVortex",games:games};
-    downloadFile("gamevortex-backup.json",JSON.stringify(backup,null,2),"application/json");
+  async function exportJson() {
+    try{
+      const {data,error}=await supabase.from("site_settings").select("key,value");
+      if(error)throw error;
+      const backup={exported_at:new Date().toISOString(),project:"GameVortex",version:2,games:games,settings:(data||[]).filter(item=>["announcement_text","announcement_enabled"].includes(item.key))};
+      downloadFile("gamevortex-full-backup.json",JSON.stringify(backup,null,2),"application/json");
+      message(gameMessage,"پشتیبان کامل بازی‌ها و تنظیمات آماده شد.",true);
+    }catch(error){message(gameMessage,"پشتیبان‌گیری انجام نشد: "+friendlyError(error));}
   }
 
 
@@ -503,6 +510,48 @@
   ["gamesSearch","statusFilter","categoryFilter"].forEach(id=>$(id).addEventListener(id==="gamesSearch"?"input":"change",renderGames));
   $("exportCsvButton").addEventListener("click",exportCsv);
   $("exportJsonButton").addEventListener("click",exportJson);
+
+  $("importCatalogButton").addEventListener("click",importSuggestedCatalog);
+  $("importBackupButton").addEventListener("click",()=>$("importFileInput").click());
+  $("importFileInput").addEventListener("change",event=>importBackupFile(event.target.files&&event.target.files[0]));
+  $("copySiteUrlButton").addEventListener("click",async()=>{
+    const url=new URL("./",location.href).href;
+    try{await navigator.clipboard.writeText(url);$("catalogStatus").textContent="لینک سایت کپی شد.";}
+    catch{$("catalogStatus").textContent=url;}
+  });
+  ["gamesSearch","statusFilter","categoryFilter","managerSort"].forEach(id=>$(id).addEventListener(id==="gamesSearch"?"input":"change",renderGames));
+  function setVisibleSelection(checked){
+    visibleGames().forEach(game=>{if(checked)selectedIds.add(game.id);else selectedIds.delete(game.id);});
+    renderGames();
+  }
+  $("selectAllVisible").addEventListener("change",event=>setVisibleSelection(event.target.checked));
+  $("selectAllGames").addEventListener("change",event=>setVisibleSelection(event.target.checked));
+  $("clearSelectionButton").addEventListener("click",()=>{selectedIds.clear();renderGames();});
+  $("bulkPublishButton").addEventListener("click",()=>bulkUpdate({is_published:true}));
+  $("bulkDraftButton").addEventListener("click",()=>bulkUpdate({is_published:false}));
+  $("bulkFeatureButton").addEventListener("click",()=>bulkUpdate({is_featured:true}));
+  $("bulkDeleteButton").addEventListener("click",bulkDelete);
+
+  function updateAnnouncementPreview(){
+    const value=$("announcementText").value;
+    $("announcementCount").textContent=String(value.length).replace(/[0-9]/g,d=>"۰۱۲۳۴۵۶۷۸۹"[Number(d)])+" / ۱۸۰";
+    $("announcementPreviewText").textContent=value.trim()||"متن پیام اینجا نمایش داده می‌شود.";
+    $("announcementPreview").classList.toggle("is-enabled",$("announcementEnabled").checked&&Boolean(value.trim()));
+  }
+  $("announcementText").addEventListener("input",updateAnnouncementPreview);
+  $("announcementEnabled").addEventListener("change",updateAnnouncementPreview);
+  document.querySelectorAll("[data-announcement-template]").forEach(button=>{
+    button.addEventListener("click",()=>{
+      $("announcementText").value=button.dataset.announcementTemplate||"";
+      $("announcementEnabled").checked=true;
+      updateAnnouncementPreview();
+    });
+  });
+  $("clearAnnouncementButton").addEventListener("click",()=>{
+    $("announcementText").value="";
+    $("announcementEnabled").checked=false;
+    updateAnnouncementPreview();
+  });
 
   $("announcementForm").addEventListener("submit",async event=>{
     event.preventDefault();
