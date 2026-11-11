@@ -401,6 +401,7 @@
   }));
   search.addEventListener("input",applyFilters);
   $("sortGames").addEventListener("change",()=>{sortCards();applyFilters();});
+  $("platformFilter")?.addEventListener("change",applyFilters);
   $("favoritesOnlyButton").addEventListener("click",()=>{
     favoritesOnly=!favoritesOnly;
     $("favoritesOnlyButton").classList.toggle("active",favoritesOnly);
@@ -414,14 +415,21 @@
     $("favoritesOnlyButton").classList.remove("active");
     $("favoritesOnlyButton").setAttribute("aria-pressed","false");
     $("sortGames").value="default";
+    if($("platformFilter"))$("platformFilter").value="all";
     sortCards();
     filters.forEach(item=>item.classList.toggle("active",item.dataset.filter==="all"));
     applyFilters();
   });
   $("modalClose").addEventListener("click",closeDetails);
   modal.addEventListener("click",event=>{if(event.target===modal)closeDetails();});
+  $("compareClose")?.addEventListener("click",closeCompare);
+  $("compareModal")?.addEventListener("click",event=>{if(event.target===$("compareModal"))closeCompare();});
+  $("openCompareButton")?.addEventListener("click",renderCompare);
+  $("clearCompareButton")?.addEventListener("click",clearCompare);
+  $("shareSiteButton")?.addEventListener("click",shareSite);
   document.addEventListener("keydown",event=>{
     if(event.key==="Escape"&&!modal.hidden)closeDetails();
+    if(event.key==="Escape"&&$("compareModal")&&!$("compareModal").hidden)closeCompare();
     if(event.key==="/"&&modal.hidden&&!["INPUT","TEXTAREA"].includes(document.activeElement.tagName)){
       event.preventDefault();search.focus();
     }
@@ -478,8 +486,14 @@
   if("serviceWorker" in navigator && location.protocol==="https:"){
     window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(error=>console.info("Offline cache unavailable",error)));
   }
-  cards.forEach((card,index)=>{card.dataset.order=String(index);bindCard(card);});
+  const existingTitles=new Set(cards.map(card=>(card.dataset.title||"").trim().toLocaleLowerCase()));
+  const catalogCards=(window.GAMEVORTEX_CATALOG||[]).filter(game=>!existingTitles.has((game.title||"").trim().toLocaleLowerCase())).map(createGameCard);
+  if(catalogCards.length)grid.append(...catalogCards);
+  cards=[...cards,...catalogCards];
+  cards.forEach((card,index)=>{card.dataset.order=card.dataset.order||String(index);bindCard(card);});
+  populatePlatformFilter();
   syncFavorites();
+  syncCompare();
   applyFilters();
   loadSharedData();
 })();
