@@ -69,10 +69,17 @@
       editor.insertAdjacentElement("beforebegin",lab);
     }
 
-    const fields=["gameTitle","gameCategory","gameTheme","gameDescription","gameUrl","gameCover","gamePlatforms","gameOrder","gamePublished","gameFeatured"];
+    const fields=["gameId","gameTitle","gameCategory","gameTheme","gameDescription","gameUrl","gameCover","gamePlatforms","gameOrder","gamePublished","gameFeatured"];
     function formData(){
       const data={};
-      fields.forEach(id=>{const el=$(id);if(el)data[id]=el.type==="checkbox"?el.checked:el.value;});
+      const saveObserver=new MutationObserver(()=>{
+      const node=$("gameMessage");
+      if(node?.classList.contains("success")&&/تغییرات ذخیره شد|بازی جدید به کتابخانه اضافه شد/.test(node.textContent)){
+        try{localStorage.removeItem(DRAFT_KEY);}catch{}
+      }
+    });
+    saveObserver.observe($("gameMessage"),{attributes:true,childList:true,characterData:true,subtree:true});
+    fields.forEach(id=>{const el=$(id);if(el)data[id]=el.type==="checkbox"?el.checked:el.value;});
       return data;
     }
     function saveDraft(){
