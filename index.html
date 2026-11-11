@@ -5,10 +5,11 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#08090d">
   <meta name="description" content="GameVortex؛ خانه‌ای برای کشف بازی‌ها، تجربه‌های تازه و دنیای گیم.">
+  <meta property="og:type" content="website"><meta property="og:title" content="GameVortex | دنیای بازی‌ها"><meta property="og:description" content="۴۸ بازی، فیلتر سبک و پلتفرم، مقایسه بازی‌ها و راهنماهای گیمینگ."><meta name="twitter:card" content="summary">
   <title>GameVortex | بازی کن، متفاوت تجربه کن</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800;900&display=swap" onload="this.onload=null;this.rel='stylesheet'"><noscript><link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"></noscript>
   <link rel="icon" href="favicon.svg" type="image/svg+xml"><link rel="manifest" href="manifest.webmanifest"><link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -17,7 +18,7 @@
   <header class="topbar">
     <a class="brand" href="#home" aria-label="GameVortex صفحه اصلی"><span class="brand-mark">G</span><span class="brand-name">GAME<span>VORTEX</span></span></a>
     <nav class="nav" id="mainNav" aria-label="منوی اصلی">
-      <a href="#home">خانه</a><a href="#games">کتابخانه بازی</a><a href="#spotlight">پیشنهاد ویژه</a><a href="#about">درباره ما</a>
+      <a href="#home">خانه</a><a href="#games">کتابخانه بازی</a><a href="#spotlight">پیشنهاد ویژه</a><a href="#guides">راهنماها</a><a href="#about">درباره ما</a>
     </nav>
     <div class="header-actions"><a class="header-link" href="#games">کشف بازی‌ها <span>↗</span></a><button class="menu-toggle" id="menuToggle" aria-label="باز کردن منو" aria-expanded="false" aria-controls="mainNav">☰</button></div>
   </header>
@@ -54,6 +55,7 @@
       <div class="library-tools">
         <label class="search-box"><span>⌕</span><input id="gameSearch" type="search" placeholder="اسم بازی یا سبک موردنظرت..." aria-label="جست‌وجوی بازی"><kbd>/</kbd></label>
         <div class="library-actions">
+          <select id="platformFilter" aria-label="فیلتر پلتفرم"><option value="all">همه پلتفرم‌ها</option><option value="PC">PC</option><option value="PlayStation">PlayStation</option><option value="Xbox">Xbox</option><option value="Nintendo Switch">Nintendo Switch</option><option value="Mobile">Mobile</option></select>
           <select id="sortGames" aria-label="مرتب‌سازی بازی‌ها"><option value="default">ترتیب پیشنهادی</option><option value="name">نام بازی: الف تا ی</option><option value="recent">جدیدترین‌ها</option></select>
           <button class="favorites-filter" id="favoritesOnlyButton" type="button" aria-pressed="false">♡ فقط علاقه‌مندی‌ها <span id="favoritesCount">۰</span></button>
         </div>
@@ -105,6 +107,23 @@
       <div class="library-foot"><span id="resultCount">نمایش ۸ بازی</span><span>بازی‌های موردعلاقه‌ات رو با ♡ ذخیره کن.</span></div>
     </section>
 
+    <section class="section wrap guides-section" id="guides">
+      <div class="section-heading">
+        <div><div class="eyebrow">PLAYER HUB <span class="eyebrow-number">/ 02</span></div><h2>مرکز <em>راهنماها</em></h2><p>نکته‌های کوتاه و کاربردی برای انتخاب بازی و تجربه بهتر.</p></div>
+        <button class="surprise-button" id="shareSiteButton" type="button"><span>↗</span> معرفی GameVortex</button>
+      </div>
+      <div class="guide-grid">
+        <article class="guide-card guide-red"><span class="guide-number">01 / CS2</span><div class="guide-icon">⌖</div><h3>شروع بهتر در CS2</h3><p>چک‌لیست ساده برای تنظیمات تصویر، صدای بازی، تمرین و انتخاب سرور مناسب.</p><a href="#guide-cs2" data-guide-open="cs2">مطالعه راهنما <span>←</span></a></article>
+        <article class="guide-card guide-blue"><span class="guide-number">02 / DISCOVER</span><div class="guide-icon">✦</div><h3>بازی مناسب سلیقه‌ات</h3><p>از بازی‌های فکری تا رقابتی؛ با فیلترها سریع‌تر انتخاب کن.</p><a href="#games">رفتن به کتابخانه <span>←</span></a></article>
+        <article class="guide-card guide-gold"><span class="guide-number">03 / PC</span><div class="guide-icon">▦</div><h3>چک‌لیست عملکرد PC</h3><p>چند بررسی بی‌خطر برای پایداری بازی: درایور، دما، فضای خالی و برنامه‌های پس‌زمینه.</p><a href="#guide-pc" data-guide-open="pc">مطالعه راهنما <span>←</span></a></article>
+        <article class="guide-card guide-green"><span class="guide-number">04 / LIBRARY</span><div class="guide-icon">◎</div><h3>ساخت فهرست شخصی</h3><p>بازی‌ها را ذخیره کن، مقایسه کن و هر زمان خواستی به فهرستت برگرد.</p><a href="#games">شروع انتخاب <span>←</span></a></article>
+      </div>
+      <div class="guide-detail-grid">
+        <article class="guide-detail" id="guide-cs2"><div class="panel-kicker">CS2 QUICK CHECKLIST</div><h3>چک‌لیست شروع CS2</h3><ul><li>برای تست پینگ، همیشه یک سرور ثابت را انتخاب و چند مسابقه را مقایسه کن.</li><li>برای اتصال پایدار، در صورت امکان از کابل شبکه به‌جای Wi-Fi استفاده کن.</li><li>برنامه‌های دانلود و به‌روزرسانی پس‌زمینه را هنگام بازی متوقف کن.</li><li>تنظیمات گرافیکی را متناسب با توان سیستم انتخاب کن و دمای دستگاه را زیر نظر داشته باش.</li></ul></article>
+        <article class="guide-detail" id="guide-pc"><div class="panel-kicker">PC PERFORMANCE NOTES</div><h3>چک‌لیست سلامت سیستم</h3><ul><li>فضای خالی کافی روی درایو نصب بازی نگه دار.</li><li>درایور کارت گرافیک را از منبع رسمی سازنده به‌روزرسانی کن.</li><li>از بسته بودن برنامه‌های سنگین غیرضروری مطمئن شو.</li><li>اگر افت فریم ناگهانی داری، دما و مصرف CPU/GPU را بررسی کن.</li></ul></article>
+      </div>
+    </section>
+
     <section class="spotlight" id="spotlight">
       <div class="wrap spotlight-inner">
         <div class="spotlight-copy"><div class="eyebrow"><span class="pulse-dot"></span> SPOTLIGHT <span class="eyebrow-number">/ 02</span></div><div class="spotlight-label" id="spotlightLabel">پیشنهاد ویژه برای گیمرها</div><h2>بازی منتخب<br><em id="spotlightGameTitle">Counter-Strike 2</em></h2><p id="spotlightDescription">این بازی توسط مدیر GameVortex برای نمایش ویژه انتخاب شده است. توضیحات و لینک رسمی را در کتابخانه ببین.</p><div class="spotlight-tags"><span id="spotlightCategory">ACTION</span><span>EDITOR\u2019S PICK</span></div><a class="button button-primary" id="spotlightLink" href="https://www.counter-strike.net/cs2" target="_blank" rel="noopener noreferrer">اطلاعات بیشتر <span>↗</span></a></div>
@@ -117,8 +136,10 @@
     </section>
   </main>
 
-  <footer class="footer"><a class="brand" href="#home"><span class="brand-mark">G</span><span class="brand-name">GAME<span>VORTEX</span></span></a><span class="footer-note">ساخته‌شده برای عاشقان بازی 🎮</span><span class="copyright">© <span id="currentYear">2026</span> GameVortex</span></footer>
+  <footer class="footer"><a class="brand" href="#home"><span class="brand-mark">G</span><span class="brand-name">GAME<span>VORTEX</span></span></a><span class="footer-note">ساخته‌شده برای عاشقان بازی 🎮</span><a class="footer-share" href="#guides">راهنماها و نکته‌ها ↑</a><span class="copyright">© <span id="currentYear">2026</span> GameVortex</span></footer>
 
+  <div class="compare-bar" id="compareBar" hidden><span id="compareSummary">۰ بازی برای مقایسه</span><div><button type="button" id="openCompareButton">مقایسه بازی‌ها</button><button type="button" id="clearCompareButton" aria-label="پاک کردن فهرست مقایسه">×</button></div></div>
+  <div class="modal-backdrop" id="compareModal" hidden><section class="game-modal compare-modal" role="dialog" aria-modal="true" aria-labelledby="compareTitle"><button class="modal-close" id="compareClose" aria-label="بستن">×</button><div class="modal-eyebrow">GAME COMPARISON / GAMEVORTEX</div><h2 id="compareTitle">مقایسه بازی‌ها</h2><div class="compare-table-wrap"><table class="compare-table"><tbody id="compareTableBody"></tbody></table></div><p class="compare-hint">حداکثر سه بازی را می‌توانی هم‌زمان مقایسه کنی.</p></section></div>
   <div class="modal-backdrop" id="gameModal" hidden>
     <section class="game-modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
       <button class="modal-close" id="modalClose" aria-label="بستن">×</button>
@@ -128,6 +149,6 @@
     </section>
   </div>
   <button class="back-to-top" id="backToTop" type="button" aria-label="بازگشت به بالای صفحه">↑</button><div class="toast" id="toast" role="status" aria-live="polite"></div>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="supabase-config.js"></script><script src="script.js"></script>
+  <script src="./supabase-config.js"></script><script src="./catalog.js"></script><script src="./script.js"></script>
 </body>
 </html>

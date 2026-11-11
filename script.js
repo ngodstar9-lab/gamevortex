@@ -9,6 +9,7 @@
   const modal=document.getElementById("gameModal");
   const $=id=>document.getElementById(id);
   const favoritesKey="gamevortex-favorites-v1";
+  const compareKey="gamevortex-compare-v1";
   const categories={action:"اکشن",strategy:"استراتژی",puzzle:"فکری",sport:"ورزشی",creative:"خلاقانه"};
   const categoryEnglish={action:"ACTION",strategy:"STRATEGY",puzzle:"PUZZLE",sport:"SPORT",creative:"CREATIVE"};
   const themeLabels={cs:"TACTICAL / FPS",portal:"THINK DIFFERENT",civ:"BUILD YOUR EMPIRE",rocket:"READY TO SCORE?",minecraft:"BUILD YOUR WORLD",human:"PUZZLE / PHYSICS",track:"RACE / REPEAT",stardew:"TAKE IT EASY"};
@@ -17,6 +18,7 @@
   let favoritesOnly=false;
   let cards=Array.from(document.querySelectorAll(".game-card"));
   let favorites=[];
+  let compareIds=[];
   let toastTimer;
   let previousFocus=null;
   let announcementDismissed=false;
@@ -25,6 +27,7 @@
     const saved=JSON.parse(localStorage.getItem(favoritesKey)||"[]");
     favorites=Array.isArray(saved)?saved:[];
   }catch{favorites=[];}
+  try{const oldCompare=JSON.parse(localStorage.getItem(compareKey)||"[]");compareIds=Array.isArray(oldCompare)?oldCompare.slice(0,3):[];}catch{compareIds=[];}
 
   function toast(text){
     const node=$("toast");
@@ -59,6 +62,82 @@
     cards.forEach(setFavoriteButton);
     $("favoritesCount").textContent=String(favorites.length).replace(/[0-9]/g,d=>"۰۱۲۳۴۵۶۷۸۹"[Number(d)]);
   }
+
+  function toggleCompare(card){
+    const title=card.dataset.title;
+    if(compareIds.includes(title))compareIds=compareIds.filter(item=>item!==title);
+    else{
+      if(compareIds.length>=3){toast("برای مقایسه، حداکثر سه بازی انتخاب کن.");return;}
+      compareIds.push(title);
+    }
+    try{localStorage.setItem(compareKey,JSON.stringify(compareIds));}catch{}
+    syncCompare();
+  }
+  function syncCompare(){
+    const bar=$("compareBar");
+    if(!bar)return;
+    compareIds=compareIds.filter(title=>cards.some(card=>card.dataset.title===title));
+    bar.hidden=compareIds.length===0;
+    $("compareSummary").textContent=String(compareIds.length).replace(/[0-9]/g,d=>"۰۱۲۳۴۵۶۷۸۹"[Number(d)])+" بازی برای مقایسه";
+    cards.forEach(card=>{
+      const button=card.querySelector(".compare-button");
+      if(!button)return;
+      const selected=compareIds.includes(card.dataset.title);
+      button.textContent=selected?"✓ انتخاب شد":"＋ مقایسه";
+      button.setAttribute("aria-pressed",String(selected));
+    });
+  }
+  function closeCompare(){
+    const node=$("compareModal");
+    if(node)node.hidden=true;
+    document.body.style.overflow=modal.hidden?"":"hidden";
+  }
+  function clearCompare(){
+    compareIds=[];
+    try{localStorage.removeItem(compareKey);}catch{}
+    syncCompare();
+    closeCompare();
+  }
+  function renderCompare(){
+    if(compareIds.length<2){toast("برای مقایسه، حداقل دو بازی انتخاب کن.");return;}
+    const selected=compareIds.map(title=>cards.find(card=>card.dataset.title===title)).filter(Boolean);
+    const body=$("compareTableBody");
+    body.replaceChildren();
+    const rows=[
+      ["نام بازی",card=>card.dataset.title],
+      ["دسته‌بندی",card=>categories[card.dataset.category]||"—"],
+      ["سبک",card=>card.dataset.style||"—"],
+      ["پلتفرم‌ها",card=>card.dataset.platforms||"PC"],
+      ["توضیحات",card=>card.dataset.description||"—"]
+    ];
+    rows.forEach(([label,getValue])=>{
+      const tr=document.createElement("tr");
+      tr.append(make("th","",label));
+      selected.forEach(card=>tr.append(make("td","",getValue(card))));
+      body.append(tr);
+    });
+    const links=document.createElement("tr");
+    links.append(make("th","","لینک رسمی"));
+    selected.forEach(card=>{
+      const td=document.createElement("td");
+      const url=safeUrl(card.dataset.link);
+      if(url){const a=make("a","compare-official-link","مشاهده ↗");a.href=url;a.target="_blank";a.rel="noopener noreferrer";td.append(a);}
+      else td.textContent="ثبت نشده";
+      links.append(td);
+    });
+    body.append(links);
+    $("compareModal").hidden=false;
+    document.body.style.overflow="hidden";
+  }
+  async function shareSite(){
+    const url=location.href.split("#")[0];
+    try{
+      if(navigator.share)await navigator.share({title:"GameVortex",text:"کتابخانه بازی‌ها و راهنماهای GameVortex",url});
+      else if(navigator.clipboard&&navigator.clipboard.writeText){await navigator.clipboard.writeText(url);toast("لینک GameVortex کپی شد.");}
+      else toast("آدرس سایت: "+url);
+    }catch(error){if(error&&error.name!=="AbortError")toast("امکان اشتراک‌گذاری در این مرورگر فعال نیست.");}
+  }
+
   function openDetails(card){
     previousFocus=document.activeElement;
     $("modalTitle").textContent=card.dataset.title;
@@ -95,6 +174,16 @@
       applyFilters();
     });
     if(details)details.addEventListener("click",()=>openDetails(card));
+    if(!card.dataset.platforms)card.dataset.platforms="PC";
+    let compare=card.querySelector(".compare-button");
+    if(!compare){
+      compare=make("button","compare-button","＋ مقایسه");
+      compare.type="button";
+      compare.setAttribute("aria-pressed","false");
+      const bottom=card.querySelector(".card-bottom");
+      if(bottom)bottom.insertBefore(compare,favorite||null);
+    }
+    compare.addEventListener("click",()=>toggleCompare(card));
   }
   function createGameCard(game,index){
     const theme=Object.hasOwn(themeMarks,game.art_theme)?game.art_theme:"cs";
@@ -102,7 +191,8 @@
     const card=make("article","game-card");
     card.dataset.category=category;
     card.dataset.title=game.title||"بازی";
-    card.dataset.name=[game.title,categories[category],game.description,game.platforms].join(" ");
+    card.dataset.name=[game.title,categories[category],game.description,game.platforms,game.aliases||""].join(" ");
+    card.dataset.platforms=game.platforms||"PC";
     card.dataset.style=categories[category];
     card.dataset.description=game.description||"";
     card.dataset.link=game.official_url||"";
@@ -148,7 +238,8 @@
     favorite.type="button";
     favorite.setAttribute("aria-pressed","false");
     favorite.setAttribute("aria-label","افزودن به علاقه‌مندی‌ها");
-    bottom.append(detail,favorite);
+    const compare=make("button","compare-button","＋ مقایسه");compare.type="button";compare.setAttribute("aria-pressed","false");
+    bottom.append(detail,compare,favorite);
     info.append(bottom);
     card.append(art,info);
     bindCard(card);
@@ -158,7 +249,7 @@
     const mode=$("sortGames").value;
     const sorted=cards.slice();
     if(mode==="name")sorted.sort((a,b)=>a.dataset.title.localeCompare(b.dataset.title,"fa"));
-    else if(mode==="recent")sorted.sort((a,b)=>(Date.parse(b.dataset.created)||0)-(Date.parse(a.dataset.created)||0));
+    else if(mode==="recent")sorted.sort((a,b)=>(Date.parse(b.dataset.created)||Number(b.dataset.order)||0)-(Date.parse(a.dataset.created)||Number(a.dataset.order)||0));
     else sorted.sort((a,b)=>(Number(a.dataset.order)||0)-(Number(b.dataset.order)||0));
     sorted.forEach(card=>grid.append(card));
     cards=sorted;
@@ -171,7 +262,10 @@
       const matchesCategory=activeFilter==="all"||card.dataset.category===activeFilter;
       const matchesQuery=!query||haystack.includes(query);
       const matchesFavorite=!favoritesOnly||favorites.includes(card.dataset.title);
-      const visible=matchesCategory&&matchesQuery&&matchesFavorite;
+      const selectedPlatform=$("platformFilter")?$("platformFilter").value:"all";
+      const platformText=(card.dataset.platforms||"PC").toLocaleLowerCase();
+      const matchesPlatform=selectedPlatform==="all"||platformText.includes(selectedPlatform.toLocaleLowerCase());
+      const visible=matchesCategory&&matchesQuery&&matchesFavorite&&matchesPlatform;
       card.hidden=!visible;
       if(visible)count++;
     });
@@ -180,11 +274,15 @@
     if(resultCount)resultCount.textContent="نمایش "+count+" بازی";
   }
   function updateHeroStats(games){
+    const total=Array.isArray(games)?games.length:cards.length;
     const count=$("liveGameCount");
+    const localized=String(total).replace(/[0-9]/g,d=>"۰۱۲۳۴۵۶۷۸۹"[Number(d)]);
     if(count){
-      count.replaceChildren(document.createTextNode(String(games.length).padStart(2,"0")));
+      count.replaceChildren(document.createTextNode(localized));
       count.append(make("span","","+"));
     }
+    const allFilter=document.querySelector('.filter[data-filter="all"] span');
+    if(allFilter)allFilter.textContent=localized;
   }
   function updateFeatured(game){
     if(!game)return;
@@ -205,36 +303,97 @@
     $("announcementText").textContent=text;
     bar.hidden=false;
   }
+  function mergeCatalog(databaseGames){
+    const rows=Array.isArray(databaseGames)?databaseGames.slice():[];
+    const existing=new Set(rows.map(game=>(game.title||"").trim().toLocaleLowerCase()));
+    (window.GAMEVORTEX_CATALOG||[]).forEach(game=>{
+      const key=(game.title||"").trim().toLocaleLowerCase();
+      if(key&&!existing.has(key)){rows.push(game);existing.add(key);}
+    });
+    return rows;
+  }
+  function applyDatabaseGames(data){
+    if(!Array.isArray(data))return;
+    const merged=mergeCatalog(data);
+    const newCards=merged.map(createGameCard);
+    grid.replaceChildren(...newCards);
+    cards=newCards;
+    populatePlatformFilter();
+    syncFavorites();
+    syncCompare();
+    applyFilters();
+    updateHeroStats(merged);
+    const featured=data.find(game=>game.is_featured);
+    if(featured)updateFeatured(featured);
+  }
+  function populatePlatformFilter(){
+    const select=$("platformFilter");
+    if(!select)return;
+    const current=select.value||"all";
+    const values=new Set();
+    cards.forEach(card=>(card.dataset.platforms||"PC").split(",").forEach(item=>{
+      const value=item.trim();if(value)values.add(value);
+    }));
+    Array.from(values).sort((a,b)=>a.localeCompare(b)).forEach(value=>{
+      const exists=Array.from(select.options).some(option=>option.value.toLowerCase()===value.toLowerCase());
+      if(!exists){const option=make("option","",value);option.value=value;select.append(option);}
+    });
+    if(Array.from(select.options).some(option=>option.value===current))select.value=current;
+  }
+  function ensureSupabaseLibrary(timeoutMs=1800){
+    if(window.supabase&&typeof window.supabase.createClient==="function")return Promise.resolve(true);
+    return new Promise(resolve=>{
+      let finished=false;
+      const finish=ready=>{if(finished)return;finished=true;resolve(Boolean(ready));};
+      const script=document.createElement("script");
+      script.src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2";
+      script.async=true;
+      script.onload=()=>finish(window.supabase&&typeof window.supabase.createClient==="function");
+      script.onerror=()=>finish(false);
+      document.head.append(script);
+      window.setTimeout(()=>finish(false),timeoutMs);
+    });
+  }
   async function loadSharedData(){
+    const libraryReady=await ensureSupabaseLibrary();
+    if(!libraryReady){console.info("Showing local GameVortex catalogue; Supabase library is unavailable.");return;}
     const ready=typeof window.supabase!=="undefined"&&
       /^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(config.supabaseUrl||"")&&
       typeof config.supabasePublishableKey==="string"&&config.supabasePublishableKey.length>20;
     if(!ready)return;
     const client=window.supabase.createClient(config.supabaseUrl,config.supabasePublishableKey);
     try{
-      const {data,error}=await client.from("games")
+      const gamesRequest=client.from("games")
         .select("id,title,category,description,official_url,art_theme,display_order,is_featured,platforms,cover_url,created_at")
         .eq("is_published",true).order("display_order",{ascending:true});
-      if(error)throw error;
-      if(!Array.isArray(data))return;
-      const newCards=data.map(createGameCard);
-      grid.replaceChildren(...newCards);
-      cards=newCards;
-      syncFavorites();
-      applyFilters();
-      updateHeroStats(data);
-      const featured=data.find(game=>game.is_featured);
-      if(featured)updateFeatured(featured);
+      const result=await Promise.race([
+        gamesRequest,
+        new Promise(resolve=>window.setTimeout(()=>resolve({timedOut:true}),2600))
+      ]);
+      if(result.timedOut){
+        console.info("Supabase is slow; local games stay visible while the request continues.");
+        gamesRequest.then(({data,error})=>{if(!error)applyDatabaseGames(data);})
+          .catch(error=>console.info("Database request failed; local catalogue remains visible.",error));
+      }else if(result.error){
+        console.warn("Could not load shared games; local catalogue remains visible.",result.error);
+      }else{
+        applyDatabaseGames(result.data);
+      }
     }catch(error){
-      console.warn("GameVortex could not load its shared game library; using the built-in preview.",error);
+      console.warn("Could not load shared games; local catalogue remains visible.",error);
     }
     try{
-      const {data,error}=await client.from("site_settings").select("key,value").in("key",["announcement_text","announcement_enabled"]);
-      if(error)throw error;
-      const settings=Object.fromEntries((data||[]).map(item=>[item.key,item.value]));
-      showAnnouncement(settings);
+      const settingsRequest=client.from("site_settings").select("key,value").in("key",["announcement_text","announcement_enabled"]);
+      const settingsResult=await Promise.race([
+        settingsRequest,
+        new Promise(resolve=>window.setTimeout(()=>resolve({timedOut:true}),1800))
+      ]);
+      if(!settingsResult.timedOut&&!settingsResult.error){
+        const settings=Object.fromEntries((settingsResult.data||[]).map(item=>[item.key,item.value]));
+        showAnnouncement(settings);
+      }
     }catch(error){
-      console.info("GameVortex announcement settings are not configured yet.",error);
+      console.info("Announcement settings are not available yet.",error);
     }
   }
 
@@ -246,6 +405,7 @@
   }));
   search.addEventListener("input",applyFilters);
   $("sortGames").addEventListener("change",()=>{sortCards();applyFilters();});
+  $("platformFilter")?.addEventListener("change",applyFilters);
   $("favoritesOnlyButton").addEventListener("click",()=>{
     favoritesOnly=!favoritesOnly;
     $("favoritesOnlyButton").classList.toggle("active",favoritesOnly);
@@ -259,14 +419,21 @@
     $("favoritesOnlyButton").classList.remove("active");
     $("favoritesOnlyButton").setAttribute("aria-pressed","false");
     $("sortGames").value="default";
+    if($("platformFilter"))$("platformFilter").value="all";
     sortCards();
     filters.forEach(item=>item.classList.toggle("active",item.dataset.filter==="all"));
     applyFilters();
   });
   $("modalClose").addEventListener("click",closeDetails);
   modal.addEventListener("click",event=>{if(event.target===modal)closeDetails();});
+  $("compareClose")?.addEventListener("click",closeCompare);
+  $("compareModal")?.addEventListener("click",event=>{if(event.target===$("compareModal"))closeCompare();});
+  $("openCompareButton")?.addEventListener("click",renderCompare);
+  $("clearCompareButton")?.addEventListener("click",clearCompare);
+  $("shareSiteButton")?.addEventListener("click",shareSite);
   document.addEventListener("keydown",event=>{
     if(event.key==="Escape"&&!modal.hidden)closeDetails();
+    if(event.key==="Escape"&&$("compareModal")&&!$("compareModal").hidden)closeCompare();
     if(event.key==="/"&&modal.hidden&&!["INPUT","TEXTAREA"].includes(document.activeElement.tagName)){
       event.preventDefault();search.focus();
     }
@@ -323,8 +490,16 @@
   if("serviceWorker" in navigator && location.protocol==="https:"){
     window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(error=>console.info("Offline cache unavailable",error)));
   }
-  cards.forEach((card,index)=>{card.dataset.order=String(index);bindCard(card);});
+  const originalCards=cards.slice();
+  const existingTitles=new Set(cards.map(card=>(card.dataset.title||"").trim().toLocaleLowerCase()));
+  const catalogCards=(window.GAMEVORTEX_CATALOG||[]).filter(game=>!existingTitles.has((game.title||"").trim().toLocaleLowerCase())).map(createGameCard);
+  if(catalogCards.length)grid.append(...catalogCards);
+  cards=[...cards,...catalogCards];
+  originalCards.forEach((card,index)=>{card.dataset.order=card.dataset.order||String(index);bindCard(card);});
+  populatePlatformFilter();
   syncFavorites();
+  syncCompare();
+  updateHeroStats(cards);
   applyFilters();
   loadSharedData();
 })();
