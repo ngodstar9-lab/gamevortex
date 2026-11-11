@@ -138,7 +138,7 @@
       status("اطلاعات "+chosen.length+" بازی تغییر کرد.");return;
     }
     if(action==="trim_titles"){if(!chosen.length)return status("ابتدا بازی‌ها را انتخاب کن.");const patches=chosen.map(row=>({id:row.id,patch:{title:String(row.title||"").trim().replace(/\s+/g," ")}}));await api.updateGames(patches);status("نام "+chosen.length+" بازی اصلاح شد.");return;}
-    if(action==="fill_platform"){const rows=chosen.length?chosen:all.filter(x=>!String(x.platforms||"").trim());if(!rows.length)return status("پلتفرم خالی وجود ندارد.");await api.updateGames(rows.map(row=>({id:row.id,patch:{platforms:"PC"}})));status("برای "+rows.length+" بازی مقدار PC ثبت شد.");return;}
+    if(action==="fill_platform"){const base=chosen.length?chosen:all,rows=base.filter(x=>!String(x.platforms||"").trim());if(!rows.length)return status("در مجموعه انتخاب‌شده پلتفرم خالی وجود ندارد.");await api.updateGames(rows.map(row=>({id:row.id,patch:{platforms:"PC"}})));status("برای "+rows.length+" بازی مقدار PC ثبت شد.");return;}
     if(action==="export_selected_csv"){return exportRows(chosen,"gamevortex-selected.csv");}
     if(action==="export_published_csv"){return exportRows(all.filter(x=>x.is_published),"gamevortex-published.csv");}
     if(action==="export_drafts_csv"){return exportRows(all.filter(x=>!x.is_published),"gamevortex-drafts.csv");}
