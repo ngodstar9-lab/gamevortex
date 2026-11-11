@@ -9,6 +9,7 @@
   const modal=document.getElementById("gameModal");
   const $=id=>document.getElementById(id);
   const favoritesKey="gamevortex-favorites-v1";
+  const compareKey="gamevortex-compare-v1";
   const categories={action:"اکشن",strategy:"استراتژی",puzzle:"فکری",sport:"ورزشی",creative:"خلاقانه"};
   const categoryEnglish={action:"ACTION",strategy:"STRATEGY",puzzle:"PUZZLE",sport:"SPORT",creative:"CREATIVE"};
   const themeLabels={cs:"TACTICAL / FPS",portal:"THINK DIFFERENT",civ:"BUILD YOUR EMPIRE",rocket:"READY TO SCORE?",minecraft:"BUILD YOUR WORLD",human:"PUZZLE / PHYSICS",track:"RACE / REPEAT",stardew:"TAKE IT EASY"};
@@ -17,6 +18,7 @@
   let favoritesOnly=false;
   let cards=Array.from(document.querySelectorAll(".game-card"));
   let favorites=[];
+  let compareIds=[];
   let toastTimer;
   let previousFocus=null;
   let announcementDismissed=false;
@@ -25,6 +27,7 @@
     const saved=JSON.parse(localStorage.getItem(favoritesKey)||"[]");
     favorites=Array.isArray(saved)?saved:[];
   }catch{favorites=[];}
+  try{const oldCompare=JSON.parse(localStorage.getItem(compareKey)||"[]");compareIds=Array.isArray(oldCompare)?oldCompare.slice(0,3):[];}catch{compareIds=[];}
 
   function toast(text){
     const node=$("toast");
@@ -102,7 +105,8 @@
     const card=make("article","game-card");
     card.dataset.category=category;
     card.dataset.title=game.title||"بازی";
-    card.dataset.name=[game.title,categories[category],game.description,game.platforms].join(" ");
+    card.dataset.name=[game.title,categories[category],game.description,game.platforms,game.aliases||""].join(" ");
+    card.dataset.platforms=game.platforms||"PC";
     card.dataset.style=categories[category];
     card.dataset.description=game.description||"";
     card.dataset.link=game.official_url||"";
@@ -148,7 +152,8 @@
     favorite.type="button";
     favorite.setAttribute("aria-pressed","false");
     favorite.setAttribute("aria-label","افزودن به علاقه‌مندی‌ها");
-    bottom.append(detail,favorite);
+    const compare=make("button","compare-button","＋ مقایسه");compare.type="button";compare.setAttribute("aria-pressed","false");
+    bottom.append(detail,compare,favorite);
     info.append(bottom);
     card.append(art,info);
     bindCard(card);
