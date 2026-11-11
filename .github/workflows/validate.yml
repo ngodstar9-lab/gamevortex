@@ -20,6 +20,8 @@ jobs:
           node --check admin.js
           node --check catalog.js
           node --check public-features.js
+          node --check public-experience.js
+          node --check admin-studio.js
           node --check admin-enhancements.js
           node --check sw.js
           node scripts/check-feature-counts.js

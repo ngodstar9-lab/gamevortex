@@ -1,11 +1,14 @@
-const CACHE_NAME = "gamevortex-shell-v5";
+const CACHE_NAME = "gamevortex-shell-v6";
 const CORE_FILES = [
   "./",
   "./index.html",
   "./style.css",
+  "./premium.css",
   "./script.js",
   "./catalog.js",
   "./public-features.js",
+  "./public-experience.js",
+  "./admin-studio.js",
   "./admin-enhancements.js",
   "./supabase-config.js",
   "./manifest.webmanifest",
