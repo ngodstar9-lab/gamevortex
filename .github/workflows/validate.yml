@@ -22,6 +22,6 @@ jobs:
           node --check public-features.js
           node --check admin-enhancements.js
           node --check sw.js
-          node -e "const fs=require('fs'); for (const f of ['public-features.js','admin-enhancements.js']) { const n=(fs.readFileSync(f,'utf8').match(/\\[\\\"[a-z_]+\\\",/g)||[]).length; if(n!==50) throw new Error(f+' has '+n+' tools, expected 50'); console.log(f+': '+n+' tools OK'); }"
+          node scripts/check-feature-counts.js
       - name: Validate web manifest
         run: node -e "JSON.parse(require('fs').readFileSync('manifest.webmanifest','utf8')); console.log('manifest OK')"
