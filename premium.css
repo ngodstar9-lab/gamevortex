@@ -654,3 +654,8 @@ body:not(.admin-body) .back-to-top{
   body:not(.admin-body) .ring-a,
   body:not(.admin-body) .ring-b{animation:none}
 }
+
+/* Keep card artwork and its content above the hover sheen. */
+body:not(.admin-body) .game-card:before{z-index:0}
+body:not(.admin-body) .game-card>.game-art,
+body:not(.admin-body) .game-card>.card-info{position:relative;z-index:1}
