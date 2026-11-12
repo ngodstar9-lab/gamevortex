@@ -106,3 +106,7 @@ td,th{padding:12px 10px}
   html{scroll-behavior:auto}
   *,*:before,*:after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
 }
+
+/* Shareable game detail links */
+.modal-share-button{margin-top:10px;cursor:pointer;border:1px solid rgba(180,188,210,.2)}
+.modal-share-button:hover{border-color:rgba(255,120,140,.72);background:rgba(255,82,104,.08)}

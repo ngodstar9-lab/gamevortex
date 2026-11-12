@@ -22,6 +22,8 @@
   let toastTimer;
   let previousFocus=null;
   let announcementDismissed=false;
+  let activeGameCard=null;
+  let sharedGameOpened=false;
 
   try{
     const saved=JSON.parse(localStorage.getItem(favoritesKey)||"[]");
@@ -138,7 +140,37 @@
     }catch(error){if(error&&error.name!=="AbortError")toast("امکان اشتراک‌گذاری در این مرورگر فعال نیست.");}
   }
 
+  async function shareActiveGame(){
+    if(!activeGameCard)return;
+    const url=new URL(location.href);
+    url.hash="";
+    url.searchParams.set("game",activeGameCard.dataset.title||"");
+    const shareUrl=url.href;
+    try{
+      if(navigator.share){
+        await navigator.share({title:activeGameCard.dataset.title||"GameVortex",text:"جزئیات این بازی در GameVortex",url:shareUrl});
+      }else if(navigator.clipboard&&navigator.clipboard.writeText){
+        await navigator.clipboard.writeText(shareUrl);
+        toast("لینک اختصاصی بازی کپی شد.");
+      }else{
+        toast("لینک بازی: "+shareUrl);
+      }
+    }catch(error){
+      if(error&&error.name!=="AbortError")toast("اشتراک‌گذاری در این مرورگر در دسترس نیست.");
+    }
+  }
+  function openSharedGameFromUrl(){
+    if(sharedGameOpened)return;
+    const title=new URLSearchParams(location.search).get("game");
+    if(!title)return;
+    const card=cards.find(item=>(item.dataset.title||"").toLocaleLowerCase()===title.toLocaleLowerCase());
+    if(!card)return;
+    sharedGameOpened=true;
+    openDetails(card);
+  }
+
   function openDetails(card){
+    activeGameCard=card;
     previousFocus=document.activeElement;
     $("modalTitle").textContent=card.dataset.title;
     $("modalStyle").textContent=card.dataset.style||"";
@@ -325,6 +357,7 @@
     updateHeroStats(merged);
     const featured=data.find(game=>game.is_featured);
     if(featured)updateFeatured(featured);
+    openSharedGameFromUrl();
   }
   function populatePlatformFilter(){
     const select=$("platformFilter");
@@ -425,7 +458,21 @@
     applyFilters();
   });
   $("modalClose").addEventListener("click",closeDetails);
+  $("modalShareButton")?.addEventListener("click",shareActiveGame);
   modal.addEventListener("click",event=>{if(event.target===modal)closeDetails();});
+  document.addEventListener("keydown",event=>{
+    const target=event.target;
+    const typing=Boolean(target&&(target.isContentEditable||["INPUT","TEXTAREA","SELECT"].includes(target.tagName)));
+    if(event.key==="Escape"){
+      if(!modal.hidden)closeDetails();
+      else if(!$("compareModal").hidden)closeCompare();
+      return;
+    }
+    if(event.key==="/"&&!typing&&!event.ctrlKey&&!event.metaKey&&!event.altKey){
+      event.preventDefault();
+      search.focus();
+    }
+  });
   $("compareClose")?.addEventListener("click",closeCompare);
   $("compareModal")?.addEventListener("click",event=>{if(event.target===$("compareModal"))closeCompare();});
   $("openCompareButton")?.addEventListener("click",renderCompare);
@@ -501,5 +548,6 @@
   syncCompare();
   updateHeroStats(cards);
   applyFilters();
+  openSharedGameFromUrl();
   loadSharedData();
 })();

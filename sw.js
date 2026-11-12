@@ -1,4 +1,4 @@
-const CACHE_NAME = "gamevortex-shell-v6";
+const CACHE_NAME = "gamevortex-shell-v7";
 const CORE_FILES = [
   "./",
   "./index.html",
