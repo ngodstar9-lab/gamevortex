@@ -1,9 +1,10 @@
-const CACHE_NAME = "gamevortex-shell-v8";
+const CACHE_NAME = "gamevortex-shell-v9";
 const CORE_FILES = [
   "./",
   "./index.html",
   "./style.css",
-  "./premium.css",
+  "./premium.css?v=20261112-2",
+  "./visual-refresh.css?v=20261112-2",
   "./script.js",
   "./catalog.js",
   "./public-features.js",
